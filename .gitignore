@@ -25,6 +25,7 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+yarn.lock
 
 # macOS
 .DS_Store
@@ -37,3 +38,5 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+scripts/raw/

@@ -3,14 +3,24 @@
     "version": ">= 7.1.2"
   },
   "build": {
-    "development": {
+    "stg": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_ENV": "stg"
+      }
     },
-    "preview": {
-      "distribution": "internal"
+    "ppd": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_ENV": "ppd"
+      }
     },
-    "production": {}
+    "prd": {
+      "env": {
+        "EXPO_PUBLIC_ENV": "prd"
+      }
+    }
   },
   "submit": {
     "production": {}

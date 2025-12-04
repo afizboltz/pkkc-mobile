@@ -4,38 +4,64 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
-import { useColorScheme } from "@/hooks/useColorScheme";
+import { useColorScheme } from "@/src/hooks/useColorScheme";
+import { printLog } from "@/src/utils/log";
 import React from "react";
+import { SafeAreaView, Text, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
   const [loaded] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+    SpaceMono: require("@/src/assets/fonts/SpaceMono-Regular.ttf"),
   });
 
   const isLogin = false;
 
+  printLog('loaded', loaded)
   if (!loaded) {
     // Async font loading only occurs in development.
     return null;
   }
 
+  const ENVIdentifier = () => {
+    return (
+      <View style={{ backgroundColor: "yellow", height: 30, alignItems: "center", justifyContent: "center" }}>
+        <Text>ENV: {process.env.EXPO_PUBLIC_ENV}</Text>
+      </View>
+    );
+  };
+
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Protected guard={!isLogin}>
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack.Protected>
-        <Stack.Protected guard={isLogin}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        </Stack.Protected>
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <SafeAreaView style={{ flex: 1 }}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+          <ENVIdentifier />
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="preLogin" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: true }} />
+            <Stack.Screen name="signup" options={{ headerShown: true }} />
+            <Stack.Screen name="pending" options={{ headerShown: true }} />
+            <Stack.Screen name="+not-found" />
+
+            <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+            <Stack.Screen name="approval" options={{ headerShown: true }} />
+            <Stack.Screen name="renewMembership" options={{ headerShown: true }} />
+            <Stack.Screen name="profile" options={{ headerShown: true }} />
+            <Stack.Screen name="marketplace" options={{ headerShown: true }} />
+            <Stack.Screen name="announcement" options={{ headerShown: true }} />
+
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </GestureHandlerRootView>
+    </SafeAreaView>
   );
 }

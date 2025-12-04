@@ -1,0 +1,61 @@
+Script started on Sun Nov 23 22:59:02 2025
+[1m[7m%[27m[1m[0m                                                                                                                                                                                                       [0m[27m[24m[Jmhafizz-macmini@mhafizzs-Mac-mini pkkc-mobile % [K[?2004hlls[?2004l
+README.md		app			eas.json		expo-env.d.ts		node_modules		scripts			tsconfig.json		typescript
+android			app.config.js		eslint.config.js	firebase.config.js	package.json		src			types			yarn.lock
+[1m[7m%[27m[1m[0m                                                                                                                                                                                                       [0m[27m[24m[Jmhafizz-macmini@mhafizzs-Mac-mini pkkc-mobile % [K[?2004hsscrit pts[?2004l
+zsh: command not found: scripts
+[1m[7m%[27m[1m[0m                                                                                                                                                                                                       [0m[27m[24m[Jmhafizz-macmini@mhafizzs-Mac-mini pkkc-mobile % [K[?2004hsscs src[?2004l
+zsh: command not found: src
+[1m[7m%[27m[1m[0m                                                                                                                                                                                                       [0m[27m[24m[Jmhafizz-macmini@mhafizzs-Mac-mini pkkc-mobile % [K[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                                                                                                                                       [0m[27m[24m[Jmhafizz-macmini@mhafizzs-Mac-mini pkkc-mobile % [K[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                                                                                                                                       [0m[27m[24m[Jmhafizz-macmini@mhafizzs-Mac-mini pkkc-mobile % [K[?2004hsrc[?2004l
+zsh: command not found: src
+[1m[7m%[27m[1m[0m                                                                                                                                                                                                       [0m[27m[24m[Jmhafizz-macmini@mhafizzs-Mac-mini pkkc-mobile % [K[?2004hsrcscriptsls     yarn start[10Dcd ..     pod install --repo-update[25Dcd ios                   [19Dcdyarn pod-install[11Daab:prd    pod-install[16Dcd ioscd        [8D[8Dpod install --repo-update[25Dcd ..                    [20Dpod install --repo-update[25Dcd ioscd                 [17D[8Dpod install --repo-update[25Dcd ..                    [20Dyarn start[10Dls        [8Dscriptssrc       [7myarn node scripts/importUsers.js[27m
+[K[A[48C[27my[27ma[27mr[27mn[27m [27mn[27mo[27md[27me[27m [27ms[27mc[27mr[27mi[27mp[27mt[27ms[27m/[27mi[27mm[27mp[27mo[27mr[27mt[27mU[27ms[27me[27mr[27ms[27m.[27mj[27ms[1B[K[?2004l
+[2K[1G[1myarn node v1.22.22[22m
+Processing 6 users...
+Imported: syuhaidahmohdamin@gmail.com
+Imported: askmelsufian@gmail.com
+Imported: sabbiena@gmail.com
+Imported: afizboltz@gmail.com
+Imported: abdhady@gmail.com
+Imported: syuhaidahmohdamin@gmail.com
+🎉 Migration complete!
+[2K[1G✨  Done in 2.04s.
+[1m[7m%[27m[1m[0m                                                                                                                                                                                                       [0m[27m[24m[Jmhafizz-macmini@mhafizzs-Mac-mini pkkc-mobile % [K[?2004hyarn node scripts/importUsers.js
+[K[K[?2004l
+[2K[1G[1myarn node v1.22.22[22m
+Processing 6 users...
+Imported: syuhaidahmohdamin@gmail.com
+Imported: askmelsufian@gmail.com
+Imported: sabbiena@gmail.com
+Imported: afizboltz@gmail.com
+Imported: abdhady@gmail.com
+Imported: syuhaidahmohdamin@gmail.com
+🎉 Migration complete!
+[2K[1G✨  Done in 1.07s.
+[1m[7m%[27m[1m[0m                                                                                                                                                                                                       [0m[27m[24m[Jmhafizz-macmini@mhafizzs-Mac-mini pkkc-mobile % [K[?2004hyarn node scripts/importUsers.js
+[K[K[?2004l
+[2K[1G[1myarn node v1.22.22[22m
+Processing 6 users...
+Imported: syuhaidahmohdamin@gmail.com
+Imported: askmelsufian@gmail.com
+Imported: sabbiena@gmail.com
+Imported: afizboltz@gmail.com
+Imported: abdhady@gmail.com
+Imported: syuhaidahmohdamin@gmail.com
+🎉 Migration complete!
+[2K[1G✨  Done in 0.95s.
+[1m[7m%[27m[1m[0m                                                                                                                                                                                                       [0m[27m[24m[Jmhafizz-macmini@mhafizzs-Mac-mini pkkc-mobile % [K[?2004hyarn node scripts/importUsers.js
+[K[K[?2004l
+[2K[1G[1myarn node v1.22.22[22m
+Processing 6 users...
+Imported: syuhaidahmohdamin@gmail.com
+Imported: askmelsufian@gmail.com
+Imported: sabbiena@gmail.com
+Imported: afizboltz@gmail.com
+Imported: abdhady@gmail.com
+Imported: syuhaidahmohdamin@gmail.com
+🎉 Migration complete!
+[2K[1G✨  Done in 0.99s.
+[1m[7m%[27m[1m[0m                                                                                                                                                                                                       [0m[27m[24m[Jmhafizz-macmini@mhafizzs-Mac-mini pkkc-mobile % [K[?2004h

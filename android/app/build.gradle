@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'my.pkkc'
+    namespace 'my.ppkc.stg'
     defaultConfig {
-        applicationId 'my.pkkc'
+        applicationId 'my.ppkc.stg'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
