@@ -11,14 +11,47 @@ export default function Index() {
     printLog('loading', loading)
 
 
-    navigation.reset({
-        index: 0,
-        routes: [
-            {
-                name: 'dashboard',
-            },
-        ],
-    });
+    React.useEffect(() => {
+        if (!loading) {
+            if (!user) {
+                navigation.reset({
+                    index: 0,
+                    routes: [
+                        {
+                            name: 'login',
+                        },
+                    ],
+                });
+            } else if (userProfile?.status === 'pending') {
+                navigation.reset({
+                    index: 0,
+                    routes: [
+                        {
+                            name: 'pending',
+                        },
+                    ],
+                });
+            } else if (userProfile?.status === 'approved') {
+                navigation.reset({
+                    index: 0,
+                    routes: [
+                        {
+                            name: 'dashboard',
+                        },
+                    ],
+                });
+            } else {
+                navigation.reset({
+                    index: 0,
+                    routes: [
+                        {
+                            name: 'preLogin',
+                        },
+                    ],
+                });
+            }
+        }
+    }, [user, userProfile, loading, navigation]);
     // useEffect(() => {
     //     if (!loading) {
     //         if (!user) {
