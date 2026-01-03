@@ -1,17 +1,22 @@
 import * as ImagePicker from "expo-image-picker";
-import { getAuth } from "firebase/auth";
-import { addDoc, collection, getFirestore, serverTimestamp } from "firebase/firestore";
+import { useNavigation } from "expo-router";
+import { arrayUnion, doc, getFirestore, serverTimestamp, setDoc } from "firebase/firestore";
 import { getDownloadURL, getStorage, ref as storageRef, uploadBytes } from "firebase/storage";
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, Button, Image, Text, View } from "react-native";
+import app, { auth } from "../src/config/firebase";
+import { useAuth } from "../src/hooks/useAuth";
 
-const storage = getStorage();
 const db = getFirestore();
-const auth = getAuth();
+const storage = getStorage(app);
 
-export default function RenewMembershipScreen({ navigation }: any) {
+export default function RenewMembershipScreen() {
+    const navigation = useNavigation();
+    const { userProfile } = useAuth();
     const [imageUri, setImageUri] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
+
+    const emailKey = userProfile?.email!.toLowerCase().trim();
 
     const pickImage = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -20,6 +25,7 @@ export default function RenewMembershipScreen({ navigation }: any) {
             return;
         }
         const res = await ImagePicker.launchImageLibraryAsync({
+            // Fallback to deprecated API to match current installed types
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             quality: 0.7,
         });
@@ -47,27 +53,51 @@ export default function RenewMembershipScreen({ navigation }: any) {
             const blob = await response.blob();
 
             // create storage path
-            const filename = `renewals/${uid}/${Date.now()}.jpg`;
+            const filename = `renewMember/${uid}/${Date.now()}.jpg`;
             const sRef = storageRef(storage, filename);
-            await uploadBytes(sRef, blob);
+            await uploadBytes(sRef, blob, { contentType: "image/jpeg" });
             const url = await getDownloadURL(sRef);
 
-            // create renewal doc
-            const renewalRef = await addDoc(collection(db, "users", uid, "renewals"), {
-                amount: 5,
-                submittedAt: serverTimestamp(),
-                screenshotUrl: url,
-                status: "pending",
-                paymentMethod: "bank_transfer",
-            });
+            // ensure user doc exists (no overwrite) – keep array fields out to avoid serverTimestamp inside arrays
+            await setDoc(
+                doc(db, "users", emailKey),
+                {
+                    email: emailKey,
+                    updatedAt: serverTimestamp(),
+                },
+                { merge: true }
+            );
+
+            // add renewal as an array item using arrayUnion; use client timestamp to avoid serverTimestamp inside arrays
+            const renewalId = `${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+            await setDoc(
+                doc(db, "users", emailKey),
+                {
+                    renewals: arrayUnion({
+                        id: renewalId,
+                        amount: 5,
+                        submittedAtMillis: Date.now(),
+                        screenshotUrl: url,
+                        status: "pending",
+                        paymentMethod: "bank_transfer",
+                    }),
+                },
+                { merge: true }
+            );
 
             setUploading(false);
             Alert.alert("Success", "Renewal submitted. Admin will verify shortly.");
-            navigation.goBack();
+            // navigation.goBack();
         } catch (err: any) {
             setUploading(false);
-            console.error(err);
-            // console.error("Error", "Failed to submit renewal: " + (err.message || err));
+            // Improved diagnostics for Firebase Storage errors
+            const code = err?.code;
+            const serverResponse = err?.customData?.serverResponse;
+            console.error("Upload error:", code, err?.message, serverResponse);
+            Alert.alert(
+                "Upload failed",
+                `${err?.message || "Unknown error"}${code ? `\nCode: ${code}` : ""}`
+            );
         }
     };
 

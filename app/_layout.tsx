@@ -22,7 +22,6 @@ export default function RootLayout() {
     SpaceMono: require("@/src/assets/fonts/SpaceMono-Regular.ttf"),
   });
 
-  const isLogin = false;
 
   printLog('loaded', loaded)
   if (!loaded) {
@@ -57,6 +56,8 @@ export default function RootLayout() {
             <Stack.Screen name="profile" options={{ headerShown: true }} />
             <Stack.Screen name="marketplace" options={{ headerShown: true }} />
             <Stack.Screen name="announcement" options={{ headerShown: true }} />
+
+            <Stack.Screen name="approveRenew" options={{ headerShown: true }} />
 
           </Stack>
           <StatusBar style="auto" />

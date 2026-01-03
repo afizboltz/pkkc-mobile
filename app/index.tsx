@@ -6,14 +6,15 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 export default function Index() {
     const navigation = useNavigation();
-    const { user, userProfile, loading } = useAuth();
+    const { userProfile, loading } = useAuth();
 
     printLog('loading', loading)
+    printLog('userProfile', userProfile)
 
 
     React.useEffect(() => {
         if (!loading) {
-            if (!user) {
+            if (!userProfile) {
                 navigation.reset({
                     index: 0,
                     routes: [
@@ -31,7 +32,7 @@ export default function Index() {
                         },
                     ],
                 });
-            } else if (userProfile?.status === 'approved') {
+            } else if (userProfile?.status === 'active') {
                 navigation.reset({
                     index: 0,
                     routes: [
@@ -51,48 +52,8 @@ export default function Index() {
                 });
             }
         }
-    }, [user, userProfile, loading, navigation]);
-    // useEffect(() => {
-    //     if (!loading) {
-    //         if (!user) {
-    //             navigation.reset({
-    //                 index: 0,
-    //                 routes: [
-    //                     {
-    //                         name: 'login',
-    //                     },
-    //                 ],
-    //             });
-    //         } else if (userProfile?.status === 'pending') {
-    //             navigation.reset({
-    //                 index: 0,
-    //                 routes: [
-    //                     {
-    //                         name: 'pending',
-    //                     },
-    //                 ],
-    //             });
-    //         } else if (userProfile?.status === 'approved') {
-    //             navigation.reset({
-    //                 index: 0,
-    //                 routes: [
-    //                     {
-    //                         name: 'dashboard',
-    //                     },
-    //                 ],
-    //             });
-    //         } else {
-    //             navigation.reset({
-    //                 index: 0,
-    //                 routes: [
-    //                     {
-    //                         name: 'preLogin',
-    //                     },
-    //                 ],
-    //             });
-    //         }
-    //     }
-    // }, [user, userProfile, loading, navigation]);
+    }, [userProfile, loading, navigation]);
+
 
     return (
         <View style={styles.container}>

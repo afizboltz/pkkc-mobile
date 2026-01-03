@@ -1,11 +1,24 @@
 import { useAuth } from '@/src/hooks/useAuth';
+import { logoutUser } from '@/src/services/auth';
 import { useNavigation } from 'expo-router';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function DashboardScreen() {
     const { userProfile } = useAuth();
     const navigation = useNavigation();
+
+    const handleSignOut = async () => {
+        try {
+            await logoutUser();
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'preLogin' }], // or 'login'
+            });
+        } catch (e: any) {
+            Alert.alert('Sign out failed', e?.message || 'Please try again.');
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -52,7 +65,17 @@ export default function DashboardScreen() {
                 }}>
                     <Text style={styles.menuLabel}>Renew Membership</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem} onPress={() => {
+                    navigation.navigate('approveRenew')
+                }}>
+                    <Text style={styles.menuLabel}>Approve Renew</Text>
+                </TouchableOpacity>
             </View>
+            <TouchableOpacity style={styles.logoutContainer} onPress={() => {
+                handleSignOut()
+            }}>
+                <Text style={styles.menuLabel}>Log out</Text>
+            </TouchableOpacity>
         </View>
     );
 }
@@ -109,4 +132,12 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         color: '#374151',
     },
+    logoutContainer: {
+        backgroundColor: '#696feac4',
+        paddingVertical: 20,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        elevation: 1,
+    }
 });
