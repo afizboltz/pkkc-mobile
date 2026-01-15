@@ -4,10 +4,13 @@ import {
     signOut,
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import { auth, db } from "../config/firebase";
+import { getDownloadURL, getStorage, ref as storageRef, uploadBytes } from "firebase/storage";
+import app, { auth, db } from "../config/firebase";
 import { printLog } from "../utils/log";
 
-export const registerUser = async (email: string, password: string) => {
+const storage = getStorage(app);
+
+export const registerUser = async (email: string, password: string, imageUri: string) => {
     try {
         const normalizedEmail = email.toLowerCase().trim();
 
@@ -38,6 +41,17 @@ export const registerUser = async (email: string, password: string) => {
             return { status: "success", type: "existing", authUser };
         } else {
             // New user registering
+
+            // fetch file bytes
+            const response = await fetch(imageUri);
+            const blob = await response.blob();
+
+            // create storage path
+            const filename = `registerUser/${authUser.user.uid}/${Date.now()}.jpg`;
+            const sRef = storageRef(storage, filename);
+            await uploadBytes(sRef, blob, { contentType: "image/jpeg" });
+            const url = await getDownloadURL(sRef);
+
             await setDoc(userRef, {
                 uid: authUser.user.uid,
                 email: normalizedEmail,
@@ -45,6 +59,7 @@ export const registerUser = async (email: string, password: string) => {
                 createdAt: serverTimestamp(),
                 status: "pending", // admin must approve
                 role: "user",
+                slipBayaranUrl: url
             });
 
             return { status: "success", type: "new", authUser };

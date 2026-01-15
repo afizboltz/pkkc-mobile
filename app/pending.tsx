@@ -1,17 +1,56 @@
+import { db } from "@/src/config/firebase";
+import { useTranslation } from "@/src/i18n";
+import { mmkvAsyncStorage } from "@/src/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import React, { useState } from "react";
-import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function PendingScreen() {
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const router = useRouter();
+    const { t } = useTranslation();
 
-    const handleCheckStatus = () => {
-        setIsRefreshing(true);
-        // TODO: Add Firestore or API check here
-        setTimeout(() => {
+    const handleCheckStatus = async () => {
+        try {
+            setIsRefreshing(true);
+            const storedEmail = await mmkvAsyncStorage.getItem("signupEmail");
+            const email = storedEmail?.trim().toLowerCase();
+
+            if (!email) {
+                Alert.alert(t('noEmailFound'), t('pleaseSignupAgain'));
+                return;
+            }
+
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("email", "==", email), limit(1));
+            const snap = await getDocs(q);
+
+            if (snap.empty) {
+                Alert.alert(t('notFound'), t('registrationNotFound'));
+                return;
+            }
+
+            const userDoc = snap.docs[0];
+            const data = userDoc.data() as { status?: string };
+            const status = (data.status || "").toLowerCase();
+
+            if (status === "active") {
+                await mmkvAsyncStorage.removeItem('signupEmail');
+                router.replace("/dashboard");
+                return;
+            }
+
+            Alert.alert(
+                t('stillPending'),
+                t('pendingAdvise')
+            );
+        } catch (e: any) {
+            Alert.alert(t('error'), e?.message || t('failedToCheckStatus'));
+        } finally {
             setIsRefreshing(false);
-            alert("Your account is still pending approval. Please check again later.");
-        }, 1500);
+        }
     };
 
     return (
@@ -23,10 +62,9 @@ export default function PendingScreen() {
             />
 
             {/* 🧾 Message */}
-            <Text style={styles.title}>Account Pending Approval</Text>
+            <Text style={styles.title}>{t('accountPendingApproval')}</Text>
             <Text style={styles.subtitle}>
-                Thank you for registering! Your account is currently under review by our admin team.
-                You’ll be notified once it’s approved.
+                {t('pendingThankYou')}
             </Text>
 
             {/* 🔁 Refresh button */}
@@ -41,22 +79,22 @@ export default function PendingScreen() {
                     color="#fff"
                 />
                 <Text style={styles.refreshText}>
-                    {isRefreshing ? "Checking..." : "Check Status"}
+                    {isRefreshing ? t('checking') : t('checkStatus')}
                 </Text>
             </TouchableOpacity>
 
             {/* 📞 Contact Support */}
             <View style={styles.supportContainer}>
-                <Text style={styles.supportText}>Need help?</Text>
+                <Text style={styles.supportText}>{t('needHelp')}</Text>
                 <TouchableOpacity
                     style={styles.whatsappButton}
                     onPress={() =>
                         // Replace number with your WhatsApp contact
-                        Linking.openURL("https://wa.me/60123456789?text=Hi, I just registered and my account is pending approval.")
+                        Linking.openURL("https://wa.me/60123456789?text=" + encodeURIComponent(t('whatsappText')))
                     }
                 >
                     <Ionicons name="logo-whatsapp" size={18} color="#fff" />
-                    <Text style={styles.whatsappText}>Contact Admin</Text>
+                    <Text style={styles.whatsappText}>{t('contactAdmin')}</Text>
                 </TouchableOpacity>
             </View>
         </View>

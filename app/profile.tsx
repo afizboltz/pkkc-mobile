@@ -1,28 +1,29 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import { useNavigation } from "expo-router";
+import React from "react";
 import {
   FlatList,
   Image,
-  Linking,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
-export default function ProfileScreen() {
-  const [user] = useState({
-    name: "Mohd Hafizzuddin",
-    email: "hafiz@example.com",
-    memberId: "#EMAC2025",
-    profileImage: "https://picsum.photos/200",
-    membershipValidUntil: "31 Dec 2025",
-  });
+import { useTranslation } from "@/src/i18n";
+import { getRenewalStatusFromProfile } from "@/src/services/renewMembership";
+import { useAuth } from "../src/hooks/useAuth";
 
+export default function ProfileScreen() {
+  const navigation = useNavigation();
+  const { userProfile } = useAuth();
+  const { t } = useTranslation();
+
+  // Coming Soon
   const documents = [
-    { id: "1", name: "Certificate - EMAC 2024", url: "https://example.com/cert.pdf" },
-    { id: "2", name: "Receipt - Renewal 2025", url: "https://example.com/receipt.pdf" },
+    // { id: "1", name: "Certificate - EMAC 2024", url: "https://example.com/cert.pdf" },
+    // { id: "2", name: "Receipt - Renewal 2025", url: "https://example.com/receipt.pdf" },
   ];
 
   const activities = [
@@ -31,29 +32,41 @@ export default function ProfileScreen() {
     { id: "3", title: "Technical Workshop", date: "8 Jul 2024" },
   ];
 
+  const getProfilePicture = (userPic: string) => {
+    if (userPic) {
+      return { uri: userPic } as const;
+    } else {
+      return require('../src/assets/images/placeholder/userDefault.png');
+    }
+  };
+
+  const renewStatus = getRenewalStatusFromProfile(userProfile);
+
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <Text style={styles.header}>Profile</Text>
+      <Text style={styles.header}>{t('profileHeader')}</Text>
 
       {/* 🧍 Basic Info */}
       <View style={styles.profileCard}>
         <View style={styles.profileRow}>
-          <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
+          <Image source={getProfilePicture(userProfile?.profileImage)} style={styles.profileImage} />
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.profileName}>{user.name}</Text>
-            <Text style={styles.profileEmail}>{user.email}</Text>
-            <Text style={styles.profileMemberId}>{user.memberId}</Text>
+            <Text style={styles.profileName}>{userProfile?.fullName}</Text>
+            <Text style={styles.profileEmail}>{userProfile?.email}</Text>
+            <Text style={styles.profileMemberId}>{userProfile?.pkkcID}</Text>
           </View>
-          <TouchableOpacity>
+          {/* <TouchableOpacity>
             <Ionicons name="create-outline" size={20} color="#007AFF" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 
       {/* 📄 Documents */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Documents</Text>
-        {documents.map((doc) => (
+        <Text style={styles.sectionTitle}>{t('documents')}</Text>
+        <Text style={styles.comingSoonText}>{t('comingSoonText')}</Text>
+        {/* {documents.map((doc) => (
           <TouchableOpacity
             key={doc.id}
             style={styles.documentItem}
@@ -63,32 +76,42 @@ export default function ProfileScreen() {
             <Text style={styles.documentName}>{doc.name}</Text>
             <Ionicons name="download-outline" size={20} color="#777" />
           </TouchableOpacity>
-        ))}
+        ))} */}
       </View>
 
       {/* 💳 Renewal */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Membership Renewal</Text>
+        <Text style={styles.sectionTitle}>{t('membershipRenewal')}</Text>
         <View style={styles.renewalCard}>
           <Text style={styles.renewalText}>
-            Membership valid until:{" "}
-            <Text style={{ fontWeight: "700" }}>{user.membershipValidUntil}</Text>
+            {t('membershipValidUntil')}{" "}
+            <Text style={{ fontWeight: "700" }}>{userProfile?.membershipExpiry}</Text>
           </Text>
-          <TouchableOpacity style={styles.renewButton}>
-            <Ionicons name="cash-outline" size={18} color="#fff" />
-            <Text style={styles.renewText}>Renew Now</Text>
-          </TouchableOpacity>
+          {renewStatus === "near_expiry" && (
+            <TouchableOpacity style={styles.renewButton} onPress={() => navigation.navigate('renewMembership' as never)}>
+              <Ionicons name="cash-outline" size={18} color="#fff" />
+              <Text style={styles.renewText}>{t('renewNow')}</Text>
+            </TouchableOpacity>
+          )}
+          {renewStatus === "pending" && (
+            <Text style={[styles.renewalText, { fontStyle: 'italic', color: '#FFA500' }]}>{t('pendingApprovalByAdmin')}</Text>
+          )}
+          {renewStatus === "completed" && (
+            <Text style={styles.renewalText}>
+              {t('renewalCompleted')}            </Text>
+          )}
         </View>
       </View>
 
       {/* 🏃 Activities */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Activities Joined</Text>
+        <Text style={styles.sectionTitle}>{t('activitiesJoined')}</Text>
+        <Text style={styles.comingSoonText}>{t('comingSoonText')}</Text>
         <FlatList
-          data={activities}
-          keyExtractor={(item) => item.id}
+          data={[] as any[]}
+          keyExtractor={(item: any) => item.id}
           scrollEnabled={false}
-          renderItem={({ item }) => (
+          renderItem={({ item }: { item: any }) => (
             <View style={styles.activityCard}>
               <Ionicons name="calendar-outline" size={20} color="#007AFF" />
               <View style={{ marginLeft: 10 }}>
@@ -224,5 +247,10 @@ const styles = StyleSheet.create({
   activityDate: {
     fontSize: 13,
     color: "#777",
+  },
+  comingSoonText: {
+    fontSize: 14,
+    color: "#999",
+    fontStyle: "italic",
   },
 });

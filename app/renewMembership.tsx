@@ -1,3 +1,4 @@
+import { useTranslation } from "@/src/i18n";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "expo-router";
 import { arrayUnion, doc, getFirestore, serverTimestamp, setDoc } from "firebase/firestore";
@@ -15,13 +16,14 @@ export default function RenewMembershipScreen() {
     const { userProfile } = useAuth();
     const [imageUri, setImageUri] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
+    const { t } = useTranslation();
 
     const emailKey = userProfile?.email!.toLowerCase().trim();
 
     const pickImage = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permission.granted) {
-            Alert.alert("Permission required", "We need permission to access your photos.");
+            Alert.alert(t('permissionRequired'), t('needPhotoPermission'));
             return;
         }
         const res = await ImagePicker.launchImageLibraryAsync({
@@ -37,11 +39,11 @@ export default function RenewMembershipScreen() {
 
     const submitRenewal = async () => {
         if (!auth.currentUser) {
-            Alert.alert("Not signed in");
+            Alert.alert(t('notSignedIn'));
             return;
         }
         if (!imageUri) {
-            Alert.alert("Please upload a screenshot of your payment.");
+            Alert.alert(t('pleaseUploadScreenshot'));
             return;
         }
 
@@ -86,7 +88,7 @@ export default function RenewMembershipScreen() {
             );
 
             setUploading(false);
-            Alert.alert("Success", "Renewal submitted. Admin will verify shortly.");
+            Alert.alert(t('success'), t('renewalSubmitted'));
             // navigation.goBack();
         } catch (err: any) {
             setUploading(false);
@@ -95,26 +97,28 @@ export default function RenewMembershipScreen() {
             const serverResponse = err?.customData?.serverResponse;
             console.error("Upload error:", code, err?.message, serverResponse);
             Alert.alert(
-                "Upload failed",
+                t('uploadFailed'),
                 `${err?.message || "Unknown error"}${code ? `\nCode: ${code}` : ""}`
             );
         }
     };
 
     return (
-        <View style={{ flex: 1, padding: 16 }}>
-            <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 8 }}>Renew PKKC Membership — RM5</Text>
+        <View style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>
+            <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 8 }}>{t('renewPKKC')}</Text>
             <Text style={{ marginBottom: 12 }}>
-                Please transfer RM5 to this account: {"\n"}Bank: Maybank {"\n"}Acc: 568603091070 {"\n"}Reference: 'Renew PKKC Membership'
+                {t('transferInstruction')}
             </Text>
 
-            <Button title="Pick Screenshot" onPress={pickImage} />
             {imageUri ? <Image source={{ uri: imageUri }} style={{ width: 200, height: 200, marginVertical: 12 }} /> : null}
+            <Button title={t('pickScreenshot')} onPress={pickImage} />
 
             {uploading ? (
                 <ActivityIndicator />
             ) : (
-                <Button title="Submit Renewal (Upload screenshot)" onPress={submitRenewal} />
+                <View style={{ marginTop: 'auto' }}>
+                    <Button title={t('submit')} onPress={submitRenewal} />
+                </View>
             )}
         </View>
     );

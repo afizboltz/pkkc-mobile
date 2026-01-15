@@ -1,9 +1,14 @@
+import { useTranslation } from '@/src/i18n';
 import { printLog } from '@/src/utils/log';
+import { mmkvAsyncStorage } from '@/src/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
+    Button,
+    Image,
     KeyboardAvoidingView,
     Platform,
     SafeAreaView,
@@ -23,44 +28,76 @@ export default function SignupScreen() {
         phone: '',
         password: '',
         confirmPassword: '',
+        receipt: ''
     });
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [imageUri, setImageUri] = useState<string | null>(null);
     const navigation = useNavigation();
+    const { t } = useTranslation();
+
+    const pickImage = async () => {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+            Alert.alert(t('permissionRequired'), t('needPhotoPermission'));
+            return;
+        }
+        const res = await ImagePicker.launchImageLibraryAsync({
+            // Fallback to deprecated API to match current installed types
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            quality: 0.7,
+        });
+
+        if (!res.canceled) {
+            setImageUri(res.assets[0].uri);
+            updateFormData('receipt', res.assets[0].uri)
+        }
+    };
 
     const handleSignup = async () => {
         setIsLoading(true);
 
-        const { name, email, phone, password, confirmPassword } = formData;
+        const { name, email, phone, password, confirmPassword, receipt } = formData;
 
-        if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
-            Alert.alert('Error', 'Please fill in all required fields');
+        if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim() || !receipt.trim()) {
+            setIsLoading(false);
+            Alert.alert(t('error'), t('requiredFields'));
             return;
         }
 
         if (password !== confirmPassword) {
-            Alert.alert('Error', 'Passwords do not match');
+            setIsLoading(false);
+            Alert.alert(t('error'), t('passwordsNotMatch'));
             return;
         }
 
         if (password.length < 6) {
-            Alert.alert('Error', 'Password must be at least 6 characters long');
+            setIsLoading(false);
+            Alert.alert(t('error'), t('passwordTooShort'));
+            return;
+        }
+
+        if (!receipt) {
+            setIsLoading(false);
+            Alert.alert(t('error'), t('pleaseUploadReceipt'));
             return;
         }
 
         try {
-            const res = await registerUser(email, password);
+            const res = await registerUser(email, password, receipt);
             printLog('SignupScreen', res);
 
             if (res.status === "success") {
-                navigation.navigate("(tabs)");
+                // Persist signup email for later status checks
+                await mmkvAsyncStorage.setItem('signupEmail', email.trim().toLowerCase());
+                navigation.navigate("pending" as never);
             }
             setIsLoading(false);
         } catch (error: any) {
             setIsLoading(false);
             printLog('SignupScreen ERR', error.message)
-            Alert.alert('Error', error.message || 'Failed to create account');
+            Alert.alert(t('error'), error.message || t('failedCreateAccount'));
         }
     };
 
@@ -76,19 +113,16 @@ export default function SignupScreen() {
             >
                 <ScrollView contentContainerStyle={styles.scrollContent}>
                     <View style={styles.header}>
-                        <TouchableOpacity style={styles.backButton}>
-                            <Ionicons name="arrow-back" size={24} color="#3B82F6" />
-                        </TouchableOpacity>
-                        <Text style={styles.title}>Create Account</Text>
-                        <Text style={styles.subtitle}>Join our company network</Text>
+                        <Text style={styles.title}>{t('createAccountTitle')}</Text>
+                        <Text style={styles.subtitle}>{t('joinCommunity')}</Text>
                     </View>
 
                     <View style={styles.form}>
                         <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Full Name *</Text>
+                            <Text style={styles.label}>{t('fullNameReq')}</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Enter your full name"
+                                placeholder={t('enterFullName')}
                                 value={formData.name}
                                 onChangeText={(value) => updateFormData('name', value)}
                                 autoCapitalize="words"
@@ -96,10 +130,10 @@ export default function SignupScreen() {
                         </View>
 
                         <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Email Address *</Text>
+                            <Text style={styles.label}>{t('emailAddressReq')}</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Enter your email"
+                                placeholder={t('enterYourEmail')}
                                 value={formData.email}
                                 onChangeText={(value) => updateFormData('email', value)}
                                 keyboardType="email-address"
@@ -109,10 +143,10 @@ export default function SignupScreen() {
                         </View>
 
                         <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Phone Number</Text>
+                            <Text style={styles.label}>{t('phoneNumber')}</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Enter your phone number"
+                                placeholder={t('enterPhoneNumber')}
                                 value={formData.phone}
                                 onChangeText={(value) => updateFormData('phone', value)}
                                 keyboardType="phone-pad"
@@ -120,11 +154,11 @@ export default function SignupScreen() {
                         </View>
 
                         <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Password *</Text>
+                            <Text style={styles.label}>{t('passwordReq')}</Text>
                             <View style={styles.passwordContainer}>
                                 <TextInput
                                     style={styles.passwordInput}
-                                    placeholder="Create a password"
+                                    placeholder={t('createPassword')}
                                     value={formData.password}
                                     onChangeText={(value) => updateFormData('password', value)}
                                     secureTextEntry={!showPassword}
@@ -143,11 +177,11 @@ export default function SignupScreen() {
                         </View>
 
                         <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Confirm Password *</Text>
+                            <Text style={styles.label}>{t('confirmPasswordReq')}</Text>
                             <View style={styles.passwordContainer}>
                                 <TextInput
                                     style={styles.passwordInput}
-                                    placeholder="Confirm your password"
+                                    placeholder={t('confirmYourPassword')}
                                     value={formData.confirmPassword}
                                     onChangeText={(value) => updateFormData('confirmPassword', value)}
                                     secureTextEntry={!showConfirmPassword}
@@ -165,21 +199,33 @@ export default function SignupScreen() {
                             </View>
                         </View>
 
+                        <View>
+                            <Text style={styles.feeText}>{t('payRM10')}</Text>
+                            <Text>{t('regFee')}</Text>
+                            <Text>{t('memberFee')}</Text>
+                            <Text style={styles.accountText}>{t('makePaymentTo')}</Text>
+                        </View>
+
+                        {imageUri ? <Image source={{ uri: imageUri }} style={{ width: 200, height: 200, marginVertical: 12 }} /> : <View style={{ height: 50 }} />}
+
+                        <Button title={t('pickScreenshot')} onPress={pickImage} />
+                        <Text style={styles.imageHint}>{t('uploadPaymentScreenshot')}</Text>
+
                         <TouchableOpacity
                             style={[styles.signupButton, isLoading && styles.signupButtonDisabled]}
                             onPress={handleSignup}
                             disabled={isLoading}
                         >
                             <Text style={styles.signupButtonText}>
-                                {isLoading ? 'Creating Account...' : 'Create Account'}
+                                {isLoading ? t('creatingAccount') : t('createAccount')}
                             </Text>
                         </TouchableOpacity>
 
                         <View style={styles.footer}>
-                            <Text style={styles.footerText}>Already have an account? </Text>
+                            <Text style={styles.footerText}>{t('alreadyHaveAccount')}</Text>
 
                             <TouchableOpacity>
-                                <Text style={styles.linkText}>Sign in</Text>
+                                <Text style={styles.linkText}>{t('signInLower')}</Text>
                             </TouchableOpacity>
 
                         </View>
@@ -294,5 +340,24 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#3B82F6',
+    },
+    feeText: {
+        fontSize: 14,
+        color: '#6B7280',
+        marginTop: 8,
+        textAlign: 'center',
+    },
+    accountText: {
+        fontSize: 14,
+        color: '#374151',
+        marginTop: 4,
+        textAlign: 'center',
+        fontWeight: '500',
+    },
+    imageHint: {
+        fontSize: 12,
+        color: '#6B7280',
+        marginTop: 8,
+        textAlign: 'center',
     },
 });

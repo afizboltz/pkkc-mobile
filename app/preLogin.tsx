@@ -33,9 +33,9 @@ export default function PreLoginScreen() {
                     <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('signup')}>
                         <Text style={styles.secondaryButtonText}>Sign Up</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('pending')}>
+                    {/* <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('pending')}>
                         <Text style={styles.secondaryButtonText}>Pending Approval</Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
 
                 </View>
 

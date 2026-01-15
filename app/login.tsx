@@ -16,6 +16,8 @@ import {
   View,
 } from 'react-native';
 
+import { useTranslation } from '@/src/i18n';
+
 export default function LoginScreen() {
   const { loading } = useAuth();
 
@@ -24,10 +26,11 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const { t } = useTranslation();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('error'), t('fillAllFields'));
       return;
     }
 
@@ -36,10 +39,10 @@ export default function LoginScreen() {
       printLog('LoginScreen', res);
       navigation.reset({
         index: 0,
-        routes: [{ name: "dashboard" }],
+        routes: [{ name: "dashboard" } as any],
       })
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to sign in');
+      Alert.alert(t('error'), error.message || t('failedSignIn'));
     }
   };
 
@@ -51,16 +54,16 @@ export default function LoginScreen() {
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to your account</Text>
+            <Text style={styles.title}>{t('welcomeBack')}</Text>
+            <Text style={styles.subtitle}>{t('signInToAccount')}</Text>
           </View>
 
           <View style={styles.form}>
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email Address</Text>
+              <Text style={styles.label}>{t('emailAddress')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your email"
+                placeholder={t('enterYourEmail')}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -70,11 +73,11 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={styles.label}>{t('passwordLabel')}</Text>
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
-                  placeholder="Enter your password"
+                  placeholder={t('enterYourPassword')}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -98,14 +101,14 @@ export default function LoginScreen() {
               disabled={loading}
             >
               <Text style={styles.loginButtonText}>
-                {loading ? 'Signing In...' : 'Sign In'}
+                {loading ? t('signingIn') : t('signIn')}
               </Text>
             </TouchableOpacity>
 
             <View style={styles.footer}>
-              <Text style={styles.footerText}>Don't have an account? </Text>
+              <Text style={styles.footerText}>{t('dontHaveAccount')}</Text>
               <TouchableOpacity onPress={() => { navigation.navigate('signup' as never) }}>
-                <Text style={styles.linkText}>Sign up</Text>
+                <Text style={styles.linkText}>{t('signUp')}</Text>
               </TouchableOpacity>
             </View>
           </View>

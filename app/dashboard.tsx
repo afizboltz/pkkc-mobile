@@ -1,5 +1,8 @@
+import { primaryColor } from '@/src/constants/Colors';
 import { useAuth } from '@/src/hooks/useAuth';
+import { useTranslation } from '@/src/i18n';
 import { logoutUser } from '@/src/services/auth';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useNavigation } from 'expo-router';
 import React from 'react';
 import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -7,43 +10,62 @@ import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-na
 export default function DashboardScreen() {
     const { userProfile } = useAuth();
     const navigation = useNavigation();
+    const { t, locale, setLocale } = useTranslation();
 
     const handleSignOut = async () => {
         try {
             await logoutUser();
             navigation.reset({
                 index: 0,
-                routes: [{ name: 'preLogin' }], // or 'login'
+                routes: [{ name: 'login' }], // or 'login'
             });
         } catch (e: any) {
-            Alert.alert('Sign out failed', e?.message || 'Please try again.');
+            Alert.alert(t('signOutFailed'), e?.message || t('pleaseTryAgain'));
         }
     };
 
     return (
         <View style={styles.container}>
+            <View style={styles.switcherContainer}>
+                <TouchableOpacity
+                    onPress={() => setLocale('ms')}
+                    style={[styles.switchBtn, locale === 'ms' && styles.switchBtnActive]}
+                >
+                    <Text style={[styles.switchBtnText, locale === 'ms' && styles.switchBtnTextActive]}>BM</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={() => setLocale('en')}
+                    style={[styles.switchBtn, locale === 'en' && styles.switchBtnActive]}
+                >
+                    <Text style={[styles.switchBtnText, locale === 'en' && styles.switchBtnTextActive]}>EN</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleSignOut} style={styles.iconBtn}>
+                    <MaterialIcons name="logout" size={22} color="#111827" />
+                </TouchableOpacity>
+            </View>
             {/* Profile Section */}
             <View style={styles.profileCard}>
                 <Image
-                    source={{ uri: 'https://via.placeholder.com/80' }}
+                    source={require('../src/assets/images/placeholder/userDefault.png')}
                     style={styles.avatar}
                 />
                 <View style={styles.profileInfo}>
-                    <Text style={styles.profileName}>Hi, {userProfile?.fullName}</Text>
-                    <Text style={styles.profileSub}>Persatuan Komuniti KITA Cybersouth</Text>
+                    <Text style={styles.profileName}>{t('hi')}, {userProfile?.fullName}</Text>
+                    <Text style={styles.profileSub}>{t('associationName')}</Text>
                 </View>
             </View>
 
             {/* Menu Section */}
             <View style={styles.menuGrid}>
-                <TouchableOpacity style={styles.menuItem} onPress={() => {
+                {/*<TouchableOpacity style={styles.menuItem} onPress={() => {
                     navigation.navigate('announcement')
                 }}>
                     <Text style={styles.menuLabel}>Announcements</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.menuItem} onPress={() => {
+                 <TouchableOpacity style={styles.menuItem} onPress={() => {
                     // navigation.navigate('events')
+                    Alert.alert('Coming Soon')
                 }}>
                     <Text style={styles.menuLabel}>Events</Text>
                 </TouchableOpacity>
@@ -56,26 +78,27 @@ export default function DashboardScreen() {
 
                 <TouchableOpacity style={styles.menuItem} onPress={() => {
                     navigation.navigate('marketplace')
+                    // Alert.alert('Coming Soon');
                 }}>
                     <Text style={styles.menuLabel}>Marketplace</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
 
                 <TouchableOpacity style={styles.menuItem} onPress={() => {
                     navigation.navigate('renewMembership')
                 }}>
-                    <Text style={styles.menuLabel}>Renew Membership</Text>
+                    <Text style={styles.menuLabel}>{t('renewMembership')}</Text>
                 </TouchableOpacity>
+
+            </View>
+            {/* Admin Menu Section */}
+            <Text style={{ fontSize: 16, fontWeight: 'bold', marginVertical: 10, marginTop: 20 }}>{t('adminPanel')}</Text>
+            <View style={{ ...styles.menuGrid, marginTop: 10 }}>
                 <TouchableOpacity style={styles.menuItem} onPress={() => {
                     navigation.navigate('approveRenew')
                 }}>
-                    <Text style={styles.menuLabel}>Approve Renew</Text>
+                    <Text style={styles.menuLabel}>{t('approveRenew')}</Text>
                 </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.logoutContainer} onPress={() => {
-                handleSignOut()
-            }}>
-                <Text style={styles.menuLabel}>Log out</Text>
-            </TouchableOpacity>
         </View>
     );
 }
@@ -99,6 +122,7 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
+        resizeMode: 'cover',
     },
     profileInfo: {
         marginLeft: 12,
@@ -133,11 +157,39 @@ const styles = StyleSheet.create({
         color: '#374151',
     },
     logoutContainer: {
-        backgroundColor: '#696feac4',
+        backgroundColor: primaryColor,
         paddingVertical: 20,
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
-        elevation: 1,
+        marginTop: 'auto'
+    },
+    switcherContainer: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: 8,
+        marginBottom: 12,
+    },
+    switchBtn: {
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        backgroundColor: '#E5E7EB',
+    },
+    switchBtnActive: {
+        backgroundColor: '#111827',
+    },
+    switchBtnText: {
+        color: '#111827',
+        fontWeight: '600',
+    },
+    switchBtnTextActive: {
+        color: 'white',
+    },
+    iconBtn: {
+        paddingVertical: 6,
+        paddingHorizontal: 8,
+        borderRadius: 16,
+        backgroundColor: '#E5E7EB',
     }
 });

@@ -33,8 +33,39 @@ export const getPendingRenewals = async () => {
     return pending;
 };
 
+export const getApprovedRenewals = async () => {
+    const users = await getAllUsers();
+    const approved: any[] = [];
+
+    for (const u of users as any[]) {
+        const raw = (u as any)?.renewals;
+        if (Array.isArray(raw)) {
+            for (const it of raw) {
+                if ((it?.status || "").toLowerCase() === "approved") {
+                    approved.push({ userFullName: (u as any).fullName, userEmail: (u as any).email || (u as any).id, ...it });
+                }
+            }
+        } else if (raw && typeof raw === "object") {
+            for (const [id, value] of Object.entries(raw)) {
+                const v: any = value || {};
+                if ((v?.status || "").toLowerCase() === "approved") {
+                    approved.push({ userFullName: (u as any).fullName, userEmail: (u as any).email || (u as any).id, id, ...v });
+                }
+            }
+        }
+    }
+
+    approved.sort((a: any, b: any) => {
+        const at = a.approvedAtMillis || a.submittedAt?.seconds || a.submittedAt?.toMillis?.() || a.submittedAtMillis || 0;
+        const bt = b.approvedAtMillis || b.submittedAt?.seconds || b.submittedAt?.toMillis?.() || b.submittedAtMillis || 0;
+        return bt - at;
+    });
+
+    return approved;
+};
+
 // Approve a renewal by userId and renewalId
-export const approveRenewal = async ({ userId, renewalId }: { userId: string; renewalId: string }) => {
+export const approveRenewal = async ({ userId, renewalId, remark, by }: { userId: string; renewalId: string; remark?: string; by?: string }) => {
     const userRef = doc(db, "users", userId);
     const snap = await getDoc(userRef);
     if (!snap.exists()) throw new Error("User not found");
@@ -44,21 +75,52 @@ export const approveRenewal = async ({ userId, renewalId }: { userId: string; re
 
     if (Array.isArray(renewals)) {
         const updated = renewals.map((it: any) =>
-            it?.id === renewalId ? { ...it, status: "approved", approvedAtMillis: Date.now() } : it
+            it?.id === renewalId
+                ? { ...it, status: "approved", approvedAtMillis: Date.now(), ...(remark ? { approvedRemark: remark } : {}), ...(by ? { approvedBy: by } : {}) }
+                : it
         );
         await updateDoc(userRef, { renewals: updated });
     } else if (renewals && typeof renewals === "object") {
         await updateDoc(userRef, {
             [`renewals.${renewalId}.status`]: "approved",
             [`renewals.${renewalId}.approvedAtMillis`]: Date.now(),
+            ...(remark ? { [`renewals.${renewalId}.approvedRemark`]: remark } : {}),
+            ...(by ? { [`renewals.${renewalId}.approvedBy`]: by } : {}),
         });
     } else {
         throw new Error("No renewals found for user");
     }
+
+    // Extend membership expiry by 1 year from the later of now or existing expiry
+    const existing = (data as any).membershipExpiry;
+    let baseMillis: number | null = null;
+    if (typeof existing === "number") {
+        baseMillis = existing;
+    } else if (existing && typeof existing === "object" && typeof (existing as any).seconds === "number") {
+        // Firestore Timestamp support just in case
+        baseMillis = (existing as any).seconds * 1000;
+    } else if (typeof existing === "string") {
+        // Expecting format YYYY-MM-DD
+        const m = existing.match(/^\d{4}-\d{2}-\d{2}$/);
+        if (m) {
+            const [y, mth, d] = existing.split('-').map((s) => parseInt(s, 10));
+            const dt = new Date(y, (mth - 1), d);
+            if (!isNaN(dt.getTime())) baseMillis = dt.getTime();
+        }
+    }
+    const now = Date.now();
+    const start = Math.max(now, baseMillis || 0);
+    const next = new Date(start || now);
+    next.setFullYear(next.getFullYear() + 1);
+    const yyyy = next.getFullYear();
+    const mm = String(next.getMonth() + 1).padStart(2, '0');
+    const dd = String(next.getDate()).padStart(2, '0');
+    const formatted = `${yyyy}-${mm}-${dd}`;
+    await updateDoc(userRef, { membershipExpiry: formatted });
 };
 
 // Reject a renewal by userId and renewalId
-export const rejectRenewal = async ({ userId, renewalId }: { userId: string; renewalId: string }) => {
+export const rejectRenewal = async ({ userId, renewalId, remark, by }: { userId: string; renewalId: string; remark?: string; by?: string }) => {
     const userRef = doc(db, "users", userId);
     const snap = await getDoc(userRef);
     if (!snap.exists()) throw new Error("User not found");
@@ -68,13 +130,17 @@ export const rejectRenewal = async ({ userId, renewalId }: { userId: string; ren
 
     if (Array.isArray(renewals)) {
         const updated = renewals.map((it: any) =>
-            it?.id === renewalId ? { ...it, status: "rejected", rejectedAtMillis: Date.now() } : it
+            it?.id === renewalId
+                ? { ...it, status: "rejected", rejectedAtMillis: Date.now(), ...(remark ? { rejectedRemark: remark } : {}), ...(by ? { rejectedBy: by } : {}) }
+                : it
         );
         await updateDoc(userRef, { renewals: updated });
     } else if (renewals && typeof renewals === "object") {
         await updateDoc(userRef, {
             [`renewals.${renewalId}.status`]: "rejected",
             [`renewals.${renewalId}.rejectedAtMillis`]: Date.now(),
+            ...(remark ? { [`renewals.${renewalId}.rejectedRemark`]: remark } : {}),
+            ...(by ? { [`renewals.${renewalId}.rejectedBy`]: by } : {}),
         });
     } else {
         throw new Error("No renewals found for user");
@@ -82,15 +148,34 @@ export const rejectRenewal = async ({ userId, renewalId }: { userId: string; ren
 };
 
 
-//import { approveRenewal, rejectRenewal } from "@/src/services/renewMembership";
+export type RenewalStatus = "near_expiry" | "pending" | "completed";
 
-// const onApprove = async (item: any) => {
-//   // userId is the user document id; in your users collection this is the email key
-//   await approveRenewal({ userId: item.userEmail.toLowerCase().trim(), renewalId: item.id });
-//   await fetchRenewals(); // refresh list
-// };
+const toMillisFromExpiry = (raw: any): number | null => {
+    if (typeof raw === "number") return raw;
+    if (raw && typeof raw === "object" && typeof raw.seconds === "number") return raw.seconds * 1000;
+    if (typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        const [y, m, d] = raw.split('-').map((s) => parseInt(s, 10));
+        const dt = new Date(y, m - 1, d);
+        return isNaN(dt.getTime()) ? null : dt.getTime();
+    }
+    return null;
+};
 
-// const onReject = async (item: any) => {
-//   await rejectRenewal({ userId: item.userEmail.toLowerCase().trim(), renewalId: item.id });
-//   await fetchRenewals(); // refresh list
-// };
+const normalizeRenewalsArray = (renewals: any): any[] => {
+    if (Array.isArray(renewals)) return renewals;
+    if (renewals && typeof renewals === "object") {
+        return Object.entries(renewals).map(([id, v]: any) => ({ id, ...(v || {}) }));
+    }
+    return [];
+};
+
+export const getRenewalStatusFromProfile = (profile: any): RenewalStatus => {
+    const renewals = normalizeRenewalsArray(profile?.renewals);
+    const hasPending = renewals.some((r) => (r?.status || "").toLowerCase() === "pending");
+    if (hasPending) return "pending";
+
+    const expiryMillis = toMillisFromExpiry(profile?.membershipExpiry);
+    if (expiryMillis && expiryMillis >= Date.now()) return "completed";
+
+    return "near_expiry";
+};

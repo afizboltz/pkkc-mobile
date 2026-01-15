@@ -9,6 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/src/hooks/useColorScheme";
+import { TranslationProvider, useTranslation } from "@/src/i18n";
 import { printLog } from "@/src/utils/log";
 import React from "react";
 import { SafeAreaView, Text, View } from "react-native";
@@ -29,39 +30,48 @@ export default function RootLayout() {
     return null;
   }
 
-  const ENVIdentifier = () => {
+  const Screens = () => {
+    const { t } = useTranslation();
+    const ENVIdentifier = () => {
+      return (
+        <View style={{ backgroundColor: "yellow", height: 30, alignItems: "center", justifyContent: "center" }}>
+          <Text>{t('env')}: {process.env.EXPO_PUBLIC_ENV}</Text>
+        </View>
+      );
+    };
     return (
-      <View style={{ backgroundColor: "yellow", height: 30, alignItems: "center", justifyContent: "center" }}>
-        <Text>ENV: {process.env.EXPO_PUBLIC_ENV}</Text>
-      </View>
+      <>
+        <ENVIdentifier />
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="preLogin" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="signup" options={{ headerShown: true, title: t('signUp') }} />
+          <Stack.Screen name="pending" options={{ headerShown: true, title: t('pendingApproval') }} />
+          <Stack.Screen name="+not-found" />
+
+          <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+          <Stack.Screen name="approval" options={{ headerShown: true, title: t('approval') }} />
+          <Stack.Screen name="renewMembership" options={{ headerShown: true, title: t('renewMembership') }} />
+          <Stack.Screen name="profile" options={{ headerShown: true, title: t('profile') }} />
+          <Stack.Screen name="marketplace" options={{ headerShown: true, title: t('marketplace') }} />
+          <Stack.Screen name="announcement" options={{ headerShown: true, title: t('announcements') }} />
+
+          <Stack.Screen name="approveRenew" options={{ headerShown: true, title: t('approveRenewal') }} />
+        </Stack>
+      </>
     );
   };
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-          <ENVIdentifier />
-          <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="preLogin" options={{ headerShown: false }} />
-            <Stack.Screen name="login" options={{ headerShown: true }} />
-            <Stack.Screen name="signup" options={{ headerShown: true }} />
-            <Stack.Screen name="pending" options={{ headerShown: true }} />
-            <Stack.Screen name="+not-found" />
-
-            <Stack.Screen name="dashboard" options={{ headerShown: false }} />
-            <Stack.Screen name="approval" options={{ headerShown: true }} />
-            <Stack.Screen name="renewMembership" options={{ headerShown: true }} />
-            <Stack.Screen name="profile" options={{ headerShown: true }} />
-            <Stack.Screen name="marketplace" options={{ headerShown: true }} />
-            <Stack.Screen name="announcement" options={{ headerShown: true }} />
-
-            <Stack.Screen name="approveRenew" options={{ headerShown: true }} />
-
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
+        <TranslationProvider>
+          <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+            <Screens />
+            <StatusBar style="auto" />
+          </ThemeProvider>
+        </TranslationProvider>
       </GestureHandlerRootView>
     </SafeAreaView>
   );
