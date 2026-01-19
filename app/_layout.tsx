@@ -58,6 +58,7 @@ export default function RootLayout() {
           <Stack.Screen name="announcement" options={{ headerShown: true, title: t('announcements') }} />
 
           <Stack.Screen name="approveRenew" options={{ headerShown: true, title: t('approveRenewal') }} />
+          <Stack.Screen name="approveNewUser" options={{ headerShown: true, title: t('approveNewUser') }} />
         </Stack>
       </>
     );

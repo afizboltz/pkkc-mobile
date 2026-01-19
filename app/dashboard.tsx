@@ -90,15 +90,23 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
 
             </View>
-            {/* Admin Menu Section */}
-            <Text style={{ fontSize: 16, fontWeight: 'bold', marginVertical: 10, marginTop: 20 }}>{t('adminPanel')}</Text>
-            <View style={{ ...styles.menuGrid, marginTop: 10 }}>
-                <TouchableOpacity style={styles.menuItem} onPress={() => {
-                    navigation.navigate('approveRenew')
-                }}>
-                    <Text style={styles.menuLabel}>{t('approveRenew')}</Text>
-                </TouchableOpacity>
-            </View>
+            {userProfile?.role === 'admin' && (
+                <View>
+                    <Text style={{ fontSize: 16, fontWeight: 'bold', marginVertical: 10, marginTop: 20 }}>{t('adminPanel')}</Text>
+                    <View style={{ ...styles.menuGrid, marginTop: 10 }}>
+                        <TouchableOpacity style={styles.menuItem} onPress={() => {
+                            navigation.navigate('approveRenew')
+                        }}>
+                            <Text style={styles.menuLabel}>{t('approveRenew')}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.menuItem} onPress={() => {
+                            navigation.navigate('approveNewUser')
+                        }}>
+                            <Text style={styles.menuLabel}>{t('approveNewUser')}</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
         </View>
     );
 }

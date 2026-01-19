@@ -115,6 +115,7 @@ const translations: Translations = {
         pendingApprovalByAdmin: 'Menunggu kelulusan admin',
         renewalCompleted: 'Pembaharuan selesai',
         activitiesJoined: 'Aktiviti Disertai',
+        approveNewUser: 'Luluskan Pengguna Baru',
     },
     en: {
         env: 'ENV',
@@ -224,6 +225,7 @@ const translations: Translations = {
         pendingApprovalByAdmin: 'Pending approval by admin',
         renewalCompleted: 'Renewal completed',
         activitiesJoined: 'Activities Joined',
+        approveNewUser: 'Approve New User',
     },
 };
 

@@ -1,6 +1,6 @@
 import { auth } from "@/src/config/firebase";
 import { useTranslation } from "@/src/i18n";
-import { approveRenewal, getApprovedRenewals, getPendingRenewals, rejectRenewal } from "@/src/services/renewMembership";
+import { approveNewUser, getApprovedNewUsers, getPendingNewUsers, rejectNewUser } from "@/src/services/newUserApproval";
 import * as Print from "expo-print";
 import { useNavigation } from "expo-router";
 import * as Sharing from "expo-sharing";
@@ -17,7 +17,7 @@ export default function ApproveRenewMembershipScreen() {
 
     const fetchRenewals = async () => {
         try {
-            const data = await getPendingRenewals();
+            const data = await getPendingNewUsers();
             setRenewals(data);
             console.log("Pending renewals:", data);
         } catch (error) {
@@ -31,8 +31,8 @@ export default function ApproveRenewMembershipScreen() {
 
     const buildApprovedHtml = (items: any[]) => {
         const rows = items.map((it, idx) => `<tr><td style="padding:8px;border:1px solid #ddd;">${idx + 1}</td><td style="padding:8px;border:1px solid #ddd;">${it.userFullName || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.userEmail || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.approvedAtMillis ? new Date(it.approvedAtMillis).toLocaleString() : "-"}</td></tr>`).join("");
-        return `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>Approved Renewals</title></head><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif;">
-            <h2 style="text-align:center;">${t('approveRenewal') || 'Approved Renewals'}</h2>
+        return `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>Approved Users</title></head><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif;">
+            <h2 style="text-align:center;">${'Approved Users'}</h2>
             <p>Total: ${items.length}</p>
             <table style="border-collapse:collapse;width:100%;">
                 <thead>
@@ -50,7 +50,7 @@ export default function ApproveRenewMembershipScreen() {
 
     const onDownloadApprovedPdf = async () => {
         try {
-            const items = await getApprovedRenewals();
+            const items = await getApprovedNewUsers();
             if (!items || items.length === 0) {
                 Alert.alert(t('error') || 'Info', t('noPendingRenewals') || 'No data');
                 return;
@@ -58,7 +58,7 @@ export default function ApproveRenewMembershipScreen() {
             const html = buildApprovedHtml(items);
             const file = await Print.printToFileAsync({ html });
             if (await Sharing.isAvailableAsync()) {
-                await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: 'Approved Renewals' });
+                await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: 'Approved Users' });
             } else {
                 Alert.alert('Saved', file.uri);
             }
@@ -84,8 +84,8 @@ export default function ApproveRenewMembershipScreen() {
         try {
             setLoadingId(item.id);
             const by = auth?.currentUser?.email || auth?.currentUser?.uid || undefined;
-            await approveRenewal({ userId: item.userEmail, renewalId: item.id, remark: remarks[item.id], by });
-            Alert.alert(t('approved'), `Renewal ${item.id} approved.`);
+            await approveNewUser({ userId: item.userEmail, remark: remarks[item.id], by });
+            Alert.alert(t('approved'), `User ${item.id} approved.`);
             setRemarks((r) => ({ ...r, [item.id]: "" }));
             await fetchRenewals();
         } catch (e: any) {
@@ -100,8 +100,8 @@ export default function ApproveRenewMembershipScreen() {
         try {
             setLoadingId(item.id);
             const by = auth?.currentUser?.email || auth?.currentUser?.uid || undefined;
-            await rejectRenewal({ userId: item.userEmail, renewalId: item.id, remark: remarks[item.id], by });
-            Alert.alert(t('rejected'), `Renewal ${item.id} rejected.`);
+            await rejectNewUser({ userId: item.userEmail, remark: remarks[item.id], by });
+            Alert.alert(t('rejected'), `User ${item.id} rejected.`);
             setRemarks((r) => ({ ...r, [item.id]: "" }));
             await fetchRenewals();
         } catch (e: any) {
@@ -132,14 +132,14 @@ export default function ApproveRenewMembershipScreen() {
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                     <View style={{ padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginVertical: 6 }}>
-                        <Text style={{ fontWeight: '600' }}>{t('user')}: {item.userFullName}</Text>
+                        <Text style={{ fontWeight: '600' }}>{t('user')}: {item.fullName}</Text>
                         <Text>{t('email')}: {item.userEmail}</Text>
                         <Text>{t('amount')}: RM {item.amount !== undefined ? item.amount : 'N/A'}.00</Text>
                         <Text>{t('idLabel')}: {item.id}</Text>
                         <Text>{t('submitted')}: {item.submittedAtMillis ? new Date(item.submittedAtMillis).toLocaleString() : item.submittedAt}</Text>
 
-                        {(item.certificateUrl || item.screenshotUrl) ? (
-                            <TouchableOpacity onPress={() => setPreviewUrl(item.certificateUrl || item.screenshotUrl)} style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#f1f5f9', borderRadius: 6 }}>
+                        {(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl) ? (
+                            <TouchableOpacity onPress={() => setPreviewUrl(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl)} style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#f1f5f9', borderRadius: 6 }}>
                                 <Text style={{ color: '#0f172a' }}>{t('viewAttachment')}</Text>
                             </TouchableOpacity>
                         ) : null}

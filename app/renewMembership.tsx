@@ -19,6 +19,8 @@ export default function RenewMembershipScreen() {
     const { t } = useTranslation();
 
     const emailKey = userProfile?.email!.toLowerCase().trim();
+    const isAjk = (userProfile?.role || "").toLowerCase() === "ajk";
+    const [selectedKind, setSelectedKind] = useState<"payment" | "certificate">("payment");
 
     const pickImage = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -42,8 +44,11 @@ export default function RenewMembershipScreen() {
             Alert.alert(t('notSignedIn'));
             return;
         }
+        const effectiveKind: "payment" | "certificate" = isAjk ? selectedKind : "payment";
         if (!imageUri) {
-            Alert.alert(t('pleaseUploadScreenshot'));
+            Alert.alert(
+                effectiveKind === "certificate" ? (t('pleaseUploadCertificate') || 'Please upload your certificate.') : t('pleaseUploadScreenshot')
+            );
             return;
         }
 
@@ -72,16 +77,18 @@ export default function RenewMembershipScreen() {
 
             // add renewal as an array item using arrayUnion; use client timestamp to avoid serverTimestamp inside arrays
             const renewalId = `${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+            const effectiveKind: "payment" | "certificate" = isAjk ? selectedKind : "payment";
             await setDoc(
                 doc(db, "users", emailKey),
                 {
                     renewals: arrayUnion({
                         id: renewalId,
-                        amount: 5,
+                        kind: effectiveKind,
+                        amount: effectiveKind === "certificate" ? 0 : 5,
                         submittedAtMillis: Date.now(),
-                        screenshotUrl: url,
+                        // keep both fields distinct for admin view compatibility
+                        ...(effectiveKind === "certificate" ? { certificateUrl: url } : { screenshotUrl: url, paymentMethod: "bank_transfer" }),
                         status: "pending",
-                        paymentMethod: "bank_transfer",
                     }),
                 },
                 { merge: true }
@@ -106,12 +113,27 @@ export default function RenewMembershipScreen() {
     return (
         <View style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>
             <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 8 }}>{t('renewPKKC')}</Text>
-            <Text style={{ marginBottom: 12 }}>
-                {t('transferInstruction')}
-            </Text>
+            {isAjk ? (
+                <View style={{ marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                        <Button title={'Payment'} onPress={() => setSelectedKind('payment')} />
+                        <Button title={'Certificate'} onPress={() => setSelectedKind('certificate')} />
+                    </View>
+                    <Text>
+                        {selectedKind === 'certificate' ? (t('uploadCertificateInstruction') || 'ACTIVE members: Please upload your latest program certificate (no payment required).') : t('transferInstruction')}
+                    </Text>
+                </View>
+            ) : (
+                <Text style={{ marginBottom: 12 }}>
+                    {t('transferInstruction')}
+                </Text>
+            )}
 
             {imageUri ? <Image source={{ uri: imageUri }} style={{ width: 200, height: 200, marginVertical: 12 }} /> : null}
-            <Button title={t('pickScreenshot')} onPress={pickImage} />
+            <Button
+                title={(isAjk ? (selectedKind === 'certificate') : false) ? (t('pickCertificate') || 'Pick Certificate') : t('pickScreenshot')}
+                onPress={pickImage}
+            />
 
             {uploading ? (
                 <ActivityIndicator />
