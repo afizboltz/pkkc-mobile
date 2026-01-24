@@ -10,6 +10,15 @@
         "EXPO_PUBLIC_ENV": "stg"
       }
     },
+    "stg-apk": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_ENV": "stg"
+      }
+    },
     "ppd": {
       "distribution": "internal",
       "env": {

@@ -1,84 +1,33 @@
 import { auth } from "@/src/config/firebase";
 import { useTranslation } from "@/src/i18n";
-import { approveNewUser, getApprovedNewUsers, getPendingNewUsers, rejectNewUser } from "@/src/services/newUserApproval";
-import * as Print from "expo-print";
-import { useNavigation } from "expo-router";
-import * as Sharing from "expo-sharing";
-import React, { useEffect, useLayoutEffect } from "react";
+import { approveNewUser, getPendingNewUsers, rejectNewUser } from "@/src/services/newUserApproval";
+import dayjs from "dayjs";
+import React, { useEffect } from "react";
 import { Alert, FlatList, Image, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 
-export default function ApproveRenewMembershipScreen() {
-    const navigation = useNavigation();
-    const [renewals, setRenewals] = React.useState<any[]>([]);
+export default function ApproveNewUserScreen() {
+
+    const [users, setUsers] = React.useState<any[]>([]);
     const [remarks, setRemarks] = React.useState<Record<string, string>>({});
     const [loadingId, setLoadingId] = React.useState<string | null>(null);
     const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = React.useState<string>("");
     const { t } = useTranslation();
 
-    const fetchRenewals = async () => {
+    const fetchUsers = async () => {
         try {
             const data = await getPendingNewUsers();
-            setRenewals(data);
-            console.log("Pending renewals:", data);
+            setUsers(data);
         } catch (error) {
-            console.error("Error fetching renewals:", error);
+            console.error("Error fetching users:", error);
         }
     };
 
     useEffect(() => {
-        fetchRenewals()
+        fetchUsers()
     }, []);
 
-    const buildApprovedHtml = (items: any[]) => {
-        const rows = items.map((it, idx) => `<tr><td style="padding:8px;border:1px solid #ddd;">${idx + 1}</td><td style="padding:8px;border:1px solid #ddd;">${it.userFullName || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.userEmail || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.approvedAtMillis ? new Date(it.approvedAtMillis).toLocaleString() : "-"}</td></tr>`).join("");
-        return `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>Approved Users</title></head><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif;">
-            <h2 style="text-align:center;">${'Approved Users'}</h2>
-            <p>Total: ${items.length}</p>
-            <table style="border-collapse:collapse;width:100%;">
-                <thead>
-                    <tr>
-                        <th style="padding:8px;border:1px solid #ddd;text-align:left;">#</th>
-                        <th style="padding:8px;border:1px solid #ddd;text-align:left;">Name</th>
-                        <th style="padding:8px;border:1px solid #ddd;text-align:left;">Email</th>
-                        <th style="padding:8px;border:1px solid #ddd;text-align:left;">Approved At</th>
-                    </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-            </table>
-        </body></html>`;
-    };
 
-    const onDownloadApprovedPdf = async () => {
-        try {
-            const items = await getApprovedNewUsers();
-            if (!items || items.length === 0) {
-                Alert.alert(t('error') || 'Info', t('noPendingRenewals') || 'No data');
-                return;
-            }
-            const html = buildApprovedHtml(items);
-            const file = await Print.printToFileAsync({ html });
-            if (await Sharing.isAvailableAsync()) {
-                await Sharing.shareAsync(file.uri, { mimeType: 'application/pdf', dialogTitle: 'Approved Users' });
-            } else {
-                Alert.alert('Saved', file.uri);
-            }
-        } catch (e: any) {
-            console.error('PDF generation error', e);
-            Alert.alert(t('error') || 'Error', e?.message || 'Failed to generate PDF');
-        }
-    };
-
-    useLayoutEffect(() => {
-        // Add header action to download PDF of approved renewals
-        // @ts-ignore
-        navigation.setOptions?.({
-            headerRight: () => (
-                <TouchableOpacity onPress={onDownloadApprovedPdf} style={{ paddingHorizontal: 12, paddingVertical: 6 }}>
-                    <Text style={{ color: '#0f172a', fontWeight: '600' }}>Download PDF</Text>
-                </TouchableOpacity>
-            ),
-        });
-    }, [navigation]);
 
     const onApprove = async (item: any) => {
         try {
@@ -87,7 +36,7 @@ export default function ApproveRenewMembershipScreen() {
             await approveNewUser({ userId: item.userEmail, remark: remarks[item.id], by });
             Alert.alert(t('approved'), `User ${item.id} approved.`);
             setRemarks((r) => ({ ...r, [item.id]: "" }));
-            await fetchRenewals();
+            await fetchUsers();
         } catch (e: any) {
             console.error(e);
             Alert.alert(t('errorTitle'), e?.message || t('failedToApprove'));
@@ -97,13 +46,17 @@ export default function ApproveRenewMembershipScreen() {
     };
 
     const onReject = async (item: any) => {
+        if (!remarks.hasOwnProperty(item.id) || remarks[item.id].length === 0) {
+            Alert.alert('Alert', t('requiredRemark'));
+            return;
+        }
         try {
             setLoadingId(item.id);
             const by = auth?.currentUser?.email || auth?.currentUser?.uid || undefined;
             await rejectNewUser({ userId: item.userEmail, remark: remarks[item.id], by });
             Alert.alert(t('rejected'), `User ${item.id} rejected.`);
             setRemarks((r) => ({ ...r, [item.id]: "" }));
-            await fetchRenewals();
+            await fetchUsers();
         } catch (e: any) {
             console.error(e);
             Alert.alert(t('errorTitle'), e?.message || t('failedToReject'));
@@ -114,29 +67,31 @@ export default function ApproveRenewMembershipScreen() {
 
     return (
         <View style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>
-            {/* In case the header button isn't visible on some devices, also show an in-page action here */}
-            <View style={{ alignSelf: 'flex-end', marginBottom: 12 }}>
-                <TouchableOpacity onPress={onDownloadApprovedPdf} style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#111827', borderRadius: 8 }}>
-                    <Text style={{ color: 'white', fontWeight: '600' }}>Download PDF</Text>
-                </TouchableOpacity>
-            </View>
-            {renewals.length > 0 ? (
+            <TextInput
+                placeholder={t('enterFullName')}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                style={{ marginBottom: 12, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 8 }}
+            />
+            {users.length > 0 ? (
                 <View style={{ alignSelf: 'flex-end', marginBottom: 16 }}>
-                    <Text style={{ fontSize: 18, fontWeight: 'bold', textAlign: 'left' }}>{t('totalPendingRenewals')}: {renewals.length} </Text>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', textAlign: 'left' }}>{t('totalPendingUserApproval')}: {users.length} </Text>
                 </View>
             ) : (
                 <Text>{t('noPendingRenewals')}</Text>
             )}
             <FlatList
-                data={renewals}
+                data={users.filter(u => {
+                    const q = searchQuery.trim().toLowerCase();
+                    if (!q) return true;
+                    return (u.userFullName || '').toLowerCase().includes(q) || (u.userEmail || '').toLowerCase().includes(q);
+                })}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                     <View style={{ padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginVertical: 6 }}>
-                        <Text style={{ fontWeight: '600' }}>{t('user')}: {item.fullName}</Text>
+                        <Text>{t('user')}: {item.userFullName}</Text>
                         <Text>{t('email')}: {item.userEmail}</Text>
-                        <Text>{t('amount')}: RM {item.amount !== undefined ? item.amount : 'N/A'}.00</Text>
-                        <Text>{t('idLabel')}: {item.id}</Text>
-                        <Text>{t('submitted')}: {item.submittedAtMillis ? new Date(item.submittedAtMillis).toLocaleString() : item.submittedAt}</Text>
+                        <Text>{t('submitted')}: {item.submittedAtMillis ? dayjs(item.submittedAtMillis).format('DD MMM YYYY HH:mm a') : item.submittedAt}</Text>
 
                         {(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl) ? (
                             <TouchableOpacity onPress={() => setPreviewUrl(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl)} style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#f1f5f9', borderRadius: 6 }}>
@@ -149,6 +104,8 @@ export default function ApproveRenewMembershipScreen() {
                             value={remarks[item.id] || ''}
                             onChangeText={(t) => setRemarks((r) => ({ ...r, [item.id]: t }))}
                             style={{ marginTop: 10, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 8 }}
+                            multiline
+                            numberOfLines={4}
                         />
 
                         <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>

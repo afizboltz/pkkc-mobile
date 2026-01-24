@@ -2,6 +2,8 @@ import { primaryColor } from '@/src/constants/Colors';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useTranslation } from '@/src/i18n';
 import { logoutUser } from '@/src/services/auth';
+import { getRenewalStatusFromProfile } from '@/src/services/renewMembership';
+import { printLog } from '@/src/utils/log';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useNavigation } from 'expo-router';
 import React from 'react';
@@ -24,6 +26,8 @@ export default function DashboardScreen() {
         }
     };
 
+    const renewStatus = getRenewalStatusFromProfile(userProfile);
+    printLog('renewStatus', renewStatus);
     return (
         <View style={styles.container}>
             <View style={styles.switcherContainer}>
@@ -84,7 +88,18 @@ export default function DashboardScreen() {
                 </TouchableOpacity> */}
 
                 <TouchableOpacity style={styles.menuItem} onPress={() => {
-                    navigation.navigate('renewMembership')
+                    // if (renewStatus === 'pending') {
+                    //     Alert.alert(t('renewalStatus'), t('membershipPendingText'));
+                    //     return;
+                    // }
+
+                    // if (renewStatus === 'completed') {
+                    //     Alert.alert(t('renewalStatus'), t('membershipActiveText'));
+                    //     return;
+                    // }
+
+                    navigation.navigate('renewMembership' as never)
+
                 }}>
                     <Text style={styles.menuLabel}>{t('renewMembership')}</Text>
                 </TouchableOpacity>
@@ -100,9 +115,19 @@ export default function DashboardScreen() {
                             <Text style={styles.menuLabel}>{t('approveRenew')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.menuItem} onPress={() => {
-                            navigation.navigate('approveNewUser')
+                            navigation.navigate('approveNewUser' as any)
                         }}>
                             <Text style={styles.menuLabel}>{t('approveNewUser')}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.menuItem} onPress={() => {
+                            navigation.navigate('renewUserList' as any)
+                        }}>
+                            <Text style={styles.menuLabel}>{t('renewUserList')}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.menuItem} onPress={() => {
+                            navigation.navigate('userList' as any)
+                        }}>
+                            <Text style={styles.menuLabel}>{t('userList')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

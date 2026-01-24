@@ -51,7 +51,6 @@ export default function RootLayout() {
           <Stack.Screen name="+not-found" />
 
           <Stack.Screen name="dashboard" options={{ headerShown: false }} />
-          <Stack.Screen name="approval" options={{ headerShown: true, title: t('approval') }} />
           <Stack.Screen name="renewMembership" options={{ headerShown: true, title: t('renewMembership') }} />
           <Stack.Screen name="profile" options={{ headerShown: true, title: t('profile') }} />
           <Stack.Screen name="marketplace" options={{ headerShown: true, title: t('marketplace') }} />
@@ -59,6 +58,8 @@ export default function RootLayout() {
 
           <Stack.Screen name="approveRenew" options={{ headerShown: true, title: t('approveRenewal') }} />
           <Stack.Screen name="approveNewUser" options={{ headerShown: true, title: t('approveNewUser') }} />
+          <Stack.Screen name="userList" options={{ headerShown: true, title: t('userList') }} />
+          <Stack.Screen name="renewUserList" options={{ headerShown: true, title: t('renewUserList') }} />
         </Stack>
       </>
     );

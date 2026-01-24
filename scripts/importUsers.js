@@ -54,6 +54,7 @@ async function importCSV() {
           role: "member", // default role. member | admin
           status: "inactive", // default status. active | inactive | pending
           migrated: true,
+          membershipExpiry: "2025-12-31",
         };
 
         // Insert/update user

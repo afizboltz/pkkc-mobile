@@ -19,7 +19,7 @@ export default function RenewMembershipScreen() {
     const { t } = useTranslation();
 
     const emailKey = userProfile?.email!.toLowerCase().trim();
-    const isAjk = (userProfile?.role || "").toLowerCase() === "ajk";
+    const isAjk = (userProfile?.role || "").toLowerCase() === "ajk" || (userProfile?.role || "").toLowerCase() === "admin";
     const [selectedKind, setSelectedKind] = useState<"payment" | "certificate">("payment");
 
     const pickImage = async () => {
