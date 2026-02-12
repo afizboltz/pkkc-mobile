@@ -26,8 +26,20 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Verify EXPO_TOKEN
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "EXPO_TOKEN is not set"
+            exit 1
+          fi
+          echo "EXPO_TOKEN is set (length: ${#EXPO_TOKEN})"
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
       - name: Login to Expo
-        run: eas login --non-interactive
+        run: |
+          echo "$EXPO_TOKEN" > ~/.expo-token
+          eas whoami
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
