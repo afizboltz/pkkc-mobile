@@ -57,6 +57,11 @@ async function importCSV() {
           membershipExpiry: "2025-12-31",
         };
 
+        const normalizedIc = (userData.icNo || '').replace(/\\D+/g, '').trim();
+        if (normalizedIc) {
+          await db.collection('icToEmail').doc(normalizedIc).set({ email });
+        }
+
         // Insert/update user
         await db.collection("users").doc(email).set(userData, { merge: true });
 

@@ -6,6 +6,10 @@
     "stg": {
       "developmentClient": true,
       "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleStgRelease"
+      },
       "env": {
         "EXPO_PUBLIC_ENV": "stg"
       }

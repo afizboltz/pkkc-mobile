@@ -8,12 +8,12 @@ import {
   FlatList,
   Image,
   Linking,
+  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import ImageViewing from "react-native-image-viewing";
 import { Avatar } from "react-native-paper";
 import ParsedText from 'react-native-parsed-text';
 
@@ -58,10 +58,8 @@ const announcements: Announcement[] = [
 ];
 
 export default function AnnouncementScreen() {
-  const [visible, setVisible] = useState(false);
-  const [currentImages, setCurrentImages] = useState<{ uri: string }[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentCaption, setCurrentCaption] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string>('');
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -95,11 +93,9 @@ export default function AnnouncementScreen() {
     data: grouped[date],
   }));
 
-  const openImageViewer = (images: string[], index: number, caption?: string) => {
-    setCurrentImages(images.map((uri) => ({ uri })));
-    setCurrentIndex(index);
-    setCurrentCaption(caption || "");
-    setVisible(true);
+  const openImage = (imageUri: string) => {
+    setSelectedImage(imageUri);
+    setModalVisible(true);
   };
 
   const handlePhonePress = (phone) => {
@@ -146,9 +142,7 @@ export default function AnnouncementScreen() {
                       {msg.images.map((img, index) => (
                         <TouchableOpacity
                           key={index}
-                          onPress={() =>
-                            openImageViewer(msg.images!, index, msg.message)
-                          }
+                          onPress={() => openImage(img)}
                           activeOpacity={0.8}
                         >
                           <Image
@@ -199,22 +193,27 @@ export default function AnnouncementScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Full-screen image viewer with caption */}
-      <ImageViewing
-        images={currentImages}
-        imageIndex={currentIndex}
-        visible={visible}
-        onRequestClose={() => setVisible(false)}
-        swipeToCloseEnabled
-        doubleTapToZoomEnabled
-        FooterComponent={({ imageIndex }) => (
-          currentCaption ? (
-            <View style={styles.captionContainer}>
-              <Text style={styles.captionText}>{currentCaption}</Text>
-            </View>
-          ) : null
-        )}
-      />
+      {/* Image Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.modalBackground}
+            activeOpacity={1}
+            onPress={() => setModalVisible(false)}
+          >
+            <Image
+              source={{ uri: selectedImage }}
+              style={styles.modalImage}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -307,5 +306,21 @@ const styles = StyleSheet.create({
     color: "#222",
     fontWeight: "bold",
     marginBottom: 6,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackground: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalImage: {
+    width: '90%',
+    height: '80%',
   },
 });

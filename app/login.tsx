@@ -1,5 +1,5 @@
 import { useAuth } from '@/src/hooks/useAuth';
-import { loginUser } from '@/src/services/auth';
+import { loginWithIcNo } from '@/src/services/auth';
 import { printLog } from '@/src/utils/log';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
@@ -23,26 +23,26 @@ export default function LoginScreen() {
 
   const navigation = useNavigation();
 
-  const [email, setEmail] = useState('');
+  const [icNo, setIcNo] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { t } = useTranslation();
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
+    if (!icNo.trim() || !password.trim()) {
       Alert.alert(t('error'), t('fillAllFields'));
       return;
     }
 
     try {
-      const res = await loginUser(email, password);
+      const res = await loginWithIcNo(icNo, password);
       printLog('LoginScreen', res);
       navigation.reset({
         index: 0,
         routes: [{ name: "dashboard" } as any],
       })
     } catch (error: any) {
-      Alert.alert(t('error'), error.message || t('failedSignIn'));
+      Alert.alert(t('error'), t('failedSignIn'));
     }
   };
 
@@ -60,13 +60,13 @@ export default function LoginScreen() {
 
           <View style={styles.form}>
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>{t('emailAddress')}</Text>
+              <Text style={styles.label}>{t('icNo')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder={t('enterYourEmail')}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
+                placeholder={t('enterYourIcNo')}
+                value={icNo}
+                onChangeText={setIcNo}
+                keyboardType="number-pad"
                 autoCapitalize="none"
                 autoCorrect={false}
               />

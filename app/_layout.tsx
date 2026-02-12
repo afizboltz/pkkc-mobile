@@ -42,11 +42,13 @@ export default function RootLayout() {
     return (
       <>
         <ENVIdentifier />
-        <Stack>
+        <Stack screenOptions={{
+          headerBackTitle: ''
+        }}>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="preLogin" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="signup" options={{ headerShown: true, title: t('signUp') }} />
+          <Stack.Screen name="signup" options={{ headerShown: true, title: t('signUp'), headerBackTitle: '' }} />
           <Stack.Screen name="pending" options={{ headerShown: true, title: t('pendingApproval') }} />
           <Stack.Screen name="+not-found" />
 
@@ -54,12 +56,14 @@ export default function RootLayout() {
           <Stack.Screen name="renewMembership" options={{ headerShown: true, title: t('renewMembership') }} />
           <Stack.Screen name="profile" options={{ headerShown: true, title: t('profile') }} />
           <Stack.Screen name="marketplace" options={{ headerShown: true, title: t('marketplace') }} />
-          <Stack.Screen name="announcement" options={{ headerShown: true, title: t('announcements') }} />
+          <Stack.Screen name="announcement" options={{ headerShown: true, title: t('announcements'), headerBackTitleVisible: false }} />
 
           <Stack.Screen name="approveRenew" options={{ headerShown: true, title: t('approveRenewal') }} />
           <Stack.Screen name="approveNewUser" options={{ headerShown: true, title: t('approveNewUser') }} />
           <Stack.Screen name="userList" options={{ headerShown: true, title: t('userList') }} />
           <Stack.Screen name="renewUserList" options={{ headerShown: true, title: t('renewUserList') }} />
+          <Stack.Screen name="organisation" options={{ headerShown: true, title: 'Organisasi PKKC' }} />
+          <Stack.Screen name="directory" options={{ headerShown: true, title: 'Direktori' }} />
         </Stack>
       </>
     );

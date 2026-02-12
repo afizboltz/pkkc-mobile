@@ -1,3 +1,4 @@
+import DatePickerModal from '@/src/components/ui/DatePickerModal';
 import { useTranslation } from '@/src/i18n';
 import { printLog } from '@/src/utils/log';
 import { mmkvAsyncStorage } from '@/src/utils/storage';
@@ -28,12 +29,23 @@ export default function SignupScreen() {
         phone: '',
         password: '',
         confirmPassword: '',
-        receipt: ''
+        receipt: '',
+        ic: '',
+        dob: '',
+        gender: '',
+        status: '',
+        taman: '',
+        address: '',
+        household: '',
+        occupation: '',
+        ack: false,
     });
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [imageUri, setImageUri] = useState<string | null>(null);
+    const [showDobPicker, setShowDobPicker] = useState(false);
+    const [dobDate, setDobDate] = useState<Date | null>(null);
     const navigation = useNavigation();
     const { t } = useTranslation();
 
@@ -55,14 +67,39 @@ export default function SignupScreen() {
         }
     };
 
+    const isEmpty = (v: any) => typeof v === 'string' ? v.trim().length === 0 : !v;
+
     const handleSignup = async () => {
         setIsLoading(true);
 
-        const { name, email, phone, password, confirmPassword, receipt } = formData;
+        const { name, email, phone, password, confirmPassword, receipt, ic, dob, gender, status, taman, address, household, occupation, ack } = formData;
 
-        if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim() || !receipt.trim()) {
+        const fieldLabels: Record<string, string> = {
+            name: t('fullNameReq'),
+            email: t('emailAddressReq'),
+            phone: t('phoneNumber'),
+            password: t('passwordReq'),
+            confirmPassword: t('confirmPasswordReq'),
+            receipt: t('uploadPaymentScreenshot'),
+            ic: t('No ic'),
+            dob: t('TARIKH LAHIR'),
+            gender: t('JANTINA'),
+            status: t('Status'),
+            taman: t('TAMAN PERUMAHAN'),
+            address: t('ALAMAT PENUH'),
+            household: t('BILANGAN AHLI RUMAH'),
+            occupation: t('PEKERJAAN'),
+        };
+
+        const missing: string[] = [];
+        (Object.keys(fieldLabels) as Array<keyof typeof fieldLabels>).forEach((key) => {
+            const value = (formData as any)[key];
+            if (isEmpty(value)) missing.push(fieldLabels[key]);
+        });
+
+        if (missing.length > 0) {
             setIsLoading(false);
-            Alert.alert(t('error'), t('requiredFields'));
+            Alert.alert(t('error'), `${t('requiredFields')}\n\n${missing.map((m, i) => `${i + 1}. ${m}`).join('\n')}`);
             return;
         }
 
@@ -84,14 +121,35 @@ export default function SignupScreen() {
             return;
         }
 
+        if (!ack) {
+            setIsLoading(false);
+            Alert.alert(t('error'), t('pleaseAcknowledge'));
+            return;
+        }
+
         try {
-            const res = await registerUser(email, password, receipt);
+            const res = await registerUser(email, password, receipt, {
+                name,
+                phone,
+                ic,
+                dob,
+                gender,
+                status,
+                taman,
+                address,
+                household,
+                occupation,
+                ack,
+            });
             printLog('SignupScreen', res);
 
             if (res.status === "success") {
                 // Persist signup email for later status checks
                 await mmkvAsyncStorage.setItem('signupEmail', email.trim().toLowerCase());
-                navigation.navigate("pending" as never);
+                navigation.reset({
+                    index: 0,
+                    routes: [{ name: "pending" as never }],
+                });
             }
             setIsLoading(false);
         } catch (error: any) {
@@ -101,7 +159,7 @@ export default function SignupScreen() {
         }
     };
 
-    const updateFormData = (field: string, value: string) => {
+    const updateFormData = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
@@ -130,6 +188,17 @@ export default function SignupScreen() {
                         </View>
 
                         <View style={styles.inputContainer}>
+                            <Text style={styles.label}>{t('No ic')}</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder={t('enterIC')}
+                                value={formData.ic}
+                                onChangeText={(value) => updateFormData('ic', value)}
+                                keyboardType='numeric'
+                            />
+                        </View>
+
+                        <View style={styles.inputContainer}>
                             <Text style={styles.label}>{t('emailAddressReq')}</Text>
                             <TextInput
                                 style={styles.input}
@@ -150,6 +219,104 @@ export default function SignupScreen() {
                                 value={formData.phone}
                                 onChangeText={(value) => updateFormData('phone', value)}
                                 keyboardType="phone-pad"
+                            />
+                            <Text style={styles.info}>{t('*sila pastikan nombor telefon ini mempunyai aplikasi Whatsapp')}</Text>
+                            <Text style={styles.info}>{t('*hanya nombor ini sahaja akan di approve oleh admin ke dalam group ahli')}</Text>
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>{t('TARIKH LAHIR')}</Text>
+                            <TouchableOpacity
+                                style={styles.input}
+                                onPress={() => setShowDobPicker(true)}
+                            >
+                                <Text style={{ color: formData.dob ? '#1F2937' : '#9CA3AF' }}>
+                                    {formData.dob || t('DD/MM/YYYY')}
+                                </Text>
+                            </TouchableOpacity>
+                            <DatePickerModal
+                                visible={showDobPicker}
+                                initialDate={dobDate || new Date(1990, 0, 1)}
+                                mode="date"
+                                title={t('TARIKH LAHIR')}
+                                cancelText={t('cancel')}
+                                confirmText={t('ok')}
+                                onCancel={() => setShowDobPicker(false)}
+                                onConfirm={(selectedDate) => {
+                                    setDobDate(selectedDate);
+                                    const dd = String(selectedDate.getDate()).padStart(2, '0');
+                                    const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                                    const yyyy = selectedDate.getFullYear();
+                                    updateFormData('dob', `${dd}/${mm}/${yyyy}`);
+                                    setShowDobPicker(false);
+                                }}
+                            />
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>{t('JANTINA')}</Text>
+                            <View style={styles.chipsRow}>
+                                {['Lelaki', 'Perempuan'].map(opt => (
+                                    <TouchableOpacity key={opt} style={[styles.chip, formData.gender === opt && styles.chipSelected]} onPress={() => updateFormData('gender', opt)}>
+                                        <Text style={[styles.chipText, formData.gender === opt && styles.chipTextSelected]}>{opt}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>{t('Status')}</Text>
+                            <View style={styles.chipsRowWrap}>
+                                {['Bujang', 'Berkahwin', 'Duda', 'Janda', 'Balu', 'Lain-lain'].map(opt => (
+                                    <TouchableOpacity key={opt} style={[styles.chip, formData.status === opt && styles.chipSelected]} onPress={() => updateFormData('status', opt)}>
+                                        <Text style={[styles.chipText, formData.status === opt && styles.chipTextSelected]}>{opt}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>{t('TAMAN PERUMAHAN')}</Text>
+                            <View style={styles.chipsRowWrap}>
+                                {['Kita Ria', 'Kita Bayu', 'Kita Impian', 'Kita Sejati', 'Kita Mesra', 'Kita Harmoni', 'Kita Mekar', 'Kita Bestari'].map(opt => (
+                                    <TouchableOpacity key={opt} style={[styles.chip, formData.taman === opt && styles.chipSelected]} onPress={() => updateFormData('taman', opt)}>
+                                        <Text style={[styles.chipText, formData.taman === opt && styles.chipTextSelected]}>{opt}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>{t('ALAMAT PENUH')}</Text>
+                            <TextInput
+                                style={[styles.input, styles.textarea]}
+                                placeholder={t('Masukkan alamat penuh anda')}
+                                value={formData.address}
+                                onChangeText={(value) => updateFormData('address', value)}
+                                multiline
+                                numberOfLines={4}
+                                textAlignVertical="top"
+                            />
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>{t('BILANGAN AHLI RUMAH')}</Text>
+                            <View style={styles.chipsRowWrap}>
+                                {['1 - 2 orang', '3 - 5 orang', 'Lebih dari 5 orang'].map(opt => (
+                                    <TouchableOpacity key={opt} style={[styles.chip, formData.household === opt && styles.chipSelected]} onPress={() => updateFormData('household', opt)}>
+                                        <Text style={[styles.chipText, formData.household === opt && styles.chipTextSelected]}>{opt}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>{t('PEKERJAAN')}</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder={t('Contoh: Jurutera, Peniaga, Pelajar')}
+                                value={formData.occupation}
+                                onChangeText={(value) => updateFormData('occupation', value)}
                             />
                         </View>
 
@@ -210,6 +377,13 @@ export default function SignupScreen() {
 
                         <Button title={t('pickScreenshot')} onPress={pickImage} />
                         <Text style={styles.imageHint}>{t('uploadPaymentScreenshot')}</Text>
+
+                        <View style={[styles.inputContainer, { marginTop: 4 }]}>
+                            <TouchableOpacity onPress={() => updateFormData('ack', !formData.ack)} style={styles.ackRow}>
+                                <View style={[styles.checkbox, formData.ack && styles.checkboxChecked]} />
+                                <Text style={styles.ackText}>Saya mengaku bahawa segala keterangan yang diberikan adalah benar, dan saya akan mematuhi semua syarat serta peraturan persatuan, serta bersetuju bahawa data peribadi saya hanya untuk kegunaan Jawatankuasa Persatuan Komuniti Kita Cybersouth (PKKC) sahaja. Sebarang penggunaan lain tanpa kebenaran saya adalah tidak sah.</Text>
+                            </TouchableOpacity>
+                        </View>
 
                         <TouchableOpacity
                             style={[styles.signupButton, isLoading && styles.signupButtonDisabled]}
@@ -279,6 +453,11 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         color: '#374151',
         marginBottom: 8,
+    },
+    info: {
+        fontSize: 14,
+        color: '#6B7280',
+        marginTop: 4,
     },
     input: {
         borderWidth: 1,
@@ -359,5 +538,62 @@ const styles = StyleSheet.create({
         color: '#6B7280',
         marginTop: 8,
         textAlign: 'center',
+    },
+    chipsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    chipsRowWrap: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+    },
+    chip: {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        backgroundColor: '#F3F4F6',
+        marginRight: 8,
+        marginBottom: 8,
+    },
+    chipSelected: {
+        backgroundColor: '#3B82F6',
+        borderColor: '#3B82F6',
+    },
+    chipText: {
+        color: '#374151',
+        fontSize: 14,
+    },
+    chipTextSelected: {
+        color: '#FFFFFF',
+    },
+    textarea: {
+        minHeight: 120,
+    },
+    ackRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    checkbox: {
+        width: 20,
+        height: 20,
+        borderRadius: 22,
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        backgroundColor: '#FFFFFF',
+        marginRight: 12,
+        marginTop: 'auto',
+        marginBottom: 'auto'
+    },
+    checkboxChecked: {
+        backgroundColor: '#3B82F6',
+        borderColor: '#3B82F6',
+    },
+    ackText: {
+        flex: 1,
+        color: '#374151',
+        fontSize: 12,
     },
 });

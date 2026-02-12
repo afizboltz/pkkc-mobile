@@ -61,13 +61,23 @@ export default function DashboardScreen() {
 
             {/* Menu Section */}
             <View style={styles.menuGrid}>
-                {/*<TouchableOpacity style={styles.menuItem} onPress={() => {
+                <TouchableOpacity style={styles.menuItem} onPress={() => {
                     navigation.navigate('announcement')
                 }}>
                     <Text style={styles.menuLabel}>Announcements</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem} onPress={() => {
+                    navigation.navigate('organisation')
+                }}>
+                    <Text style={styles.menuLabel}>Organisation</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem} onPress={() => {
+                    navigation.navigate('directory' as never)
+                }}>
+                    <Text style={styles.menuLabel}>Directory</Text>
+                </TouchableOpacity>
 
-                 <TouchableOpacity style={styles.menuItem} onPress={() => {
+                {/* <TouchableOpacity style={styles.menuItem} onPress={() => {
                     // navigation.navigate('events')
                     Alert.alert('Coming Soon')
                 }}>
