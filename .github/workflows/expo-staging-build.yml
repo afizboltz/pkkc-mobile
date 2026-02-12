@@ -1,0 +1,57 @@
+name: Expo Staging Build
+
+on:
+  push:
+    branches: [main, develop, staging]
+  pull_request:
+    branches: [main, develop, staging]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Setup Expo CLI
+        run: npm install -g @expo/cli eas-cli
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Login to Expo
+        run: eas login --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build Android Staging APK
+        run: eas build --platform android --profile stg-apk --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build iOS Staging
+        run: eas build --platform ios --profile stg --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Download build artifacts
+        run: |
+          mkdir -p build-artifacts
+          eas build:view --platform android --profile stg-apk --non-interactive --output-path build-artifacts/android-build-info.json
+          eas build:view --platform ios --profile stg --non-interactive --output-path build-artifacts/ios-build-info.json
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-build-artifacts
+          path: build-artifacts/
+          retention-days: 30
