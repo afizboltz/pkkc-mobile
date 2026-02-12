@@ -91,31 +91,9 @@ export const approveRenewal = async ({ userId, renewalId, remark, by }: { userId
         throw new Error("No renewals found for user");
     }
 
-    // Extend membership expiry by 1 year from the later of now or existing expiry
-    const existing = (data as any).membershipExpiry;
-    let baseMillis: number | null = null;
-    if (typeof existing === "number") {
-        baseMillis = existing;
-    } else if (existing && typeof existing === "object" && typeof (existing as any).seconds === "number") {
-        // Firestore Timestamp support just in case
-        baseMillis = (existing as any).seconds * 1000;
-    } else if (typeof existing === "string") {
-        // Expecting format YYYY-MM-DD
-        const m = existing.match(/^\d{4}-\d{2}-\d{2}$/);
-        if (m) {
-            const [y, mth, d] = existing.split('-').map((s) => parseInt(s, 10));
-            const dt = new Date(y, (mth - 1), d);
-            if (!isNaN(dt.getTime())) baseMillis = dt.getTime();
-        }
-    }
-    const now = Date.now();
-    const start = Math.max(now, baseMillis || 0);
-    const next = new Date(start || now);
-    next.setFullYear(next.getFullYear() + 1);
-    const yyyy = next.getFullYear();
-    const mm = String(next.getMonth() + 1).padStart(2, '0');
-    const dd = String(next.getDate()).padStart(2, '0');
-    const formatted = `${yyyy}-${mm}-${dd}`;
+    // Set membership expiry to end of next year (December 31st)
+    const nextYear = new Date().getFullYear() + 1;
+    const formatted = `${nextYear}-12-31`;
     await updateDoc(userRef, { membershipExpiry: formatted });
 };
 

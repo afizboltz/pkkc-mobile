@@ -1,4 +1,7 @@
+import { ThemedText } from "@/src/components/ThemedText";
+import { Card } from "@/src/components/ui";
 import { getAnnouncements } from "@/src/services/announcement";
+import { BorderRadius, ColorPalette, Shadow, Spacing } from "@/src/theme";
 import { printLog } from "@/src/utils/log";
 import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
@@ -10,7 +13,6 @@ import {
   Linking,
   Modal,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -122,9 +124,9 @@ export default function AnnouncementScreen() {
         data={sections}
         keyExtractor={(item) => item.title}
         renderItem={({ item }) => (
-          <View style={{ marginBottom: 16 }}>
+          <View style={{ marginBottom: Spacing.md }}>
             <View style={styles.dateChip}>
-              <Text style={styles.dateText}>{item.title}</Text>
+              <ThemedText type="labelMedium" style={styles.dateText}>{item.title}</ThemedText>
             </View>
 
             {item.data.map((msg) => (
@@ -135,7 +137,7 @@ export default function AnnouncementScreen() {
                   style={styles.avatar}
                   color="white"
                 />
-                <View style={styles.messageBubble}>
+                <Card variant="elevated" padding="sm" style={styles.messageBubble}>
                   {/* Image Grid */}
                   {msg.images && msg.images.length > 0 && (
                     <View style={styles.imageGrid}>
@@ -164,7 +166,7 @@ export default function AnnouncementScreen() {
 
                   {/* Title text */}
                   {msg.title ? (
-                    <Text style={styles.titleText}>{msg.title}</Text>
+                    <ThemedText type="titleMedium" style={styles.titleText}>{msg.title}</ThemedText>
                   ) : null}
 
                   {/* Message text */}
@@ -172,8 +174,8 @@ export default function AnnouncementScreen() {
                     <ParsedText
                       style={styles.messageText}
                       parse={[
-                        { type: 'url', style: { color: 'blue' }, onPress: handleUrlPress },
-                        { type: 'phone', style: { color: 'blue' }, onPress: handlePhonePress }
+                        { type: 'url', style: { color: ColorPalette.primary[500] }, onPress: handleUrlPress },
+                        { type: 'phone', style: { color: ColorPalette.primary[500] }, onPress: handlePhonePress }
                       ]}
                     >
                       {msg.description}
@@ -182,10 +184,10 @@ export default function AnnouncementScreen() {
                   ) : null}
 
                   {/* Timestamp */}
-                  <Text style={styles.timeText}>
+                  <ThemedText type="caption" style={styles.timeText}>
                     {dayjs(msg.createdAt.toDate()).format("h:mm A")}
-                  </Text>
-                </View>
+                  </ThemedText>
+                </Card>
               </View>
             ))}
           </View>
@@ -224,88 +226,74 @@ const bubbleWidth = width * 0.7;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    paddingHorizontal: 12,
-    paddingTop: 12,
+    backgroundColor: ColorPalette.white,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
   },
   dateChip: {
     alignSelf: "center",
-    backgroundColor: "#D1F0E0",
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginBottom: 8,
+    backgroundColor: ColorPalette.success[100],
+    borderRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   dateText: {
-    fontSize: 12,
-    color: "#075E54",
-    fontWeight: "500",
+    color: ColorPalette.success[700],
   },
   messageRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 10,
+    marginBottom: Spacing.sm,
   },
   avatar: {
-    backgroundColor: "#25D366",
-    marginRight: 8,
+    backgroundColor: ColorPalette.success[500],
+    marginRight: Spacing.sm,
   },
   messageBubble: {
-    backgroundColor: "#F6F8FA",
-    padding: 10,
-    borderRadius: 10,
     maxWidth: "80%",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+    ...Shadow.sm,
   },
   messageText: {
-    fontSize: 15,
-    color: "#222",
-    marginTop: 6,
+    marginTop: Spacing.xs,
   },
   timeText: {
-    fontSize: 11,
-    color: "#888",
     alignSelf: "flex-end",
-    marginTop: 4,
+    marginTop: Spacing.xs,
   },
   imageGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
-    marginBottom: 6,
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
   },
   image: {
-    borderRadius: 8,
-    backgroundColor: "#ddd",
+    borderRadius: BorderRadius.md,
+    backgroundColor: ColorPalette.gray[200],
   },
   singleImage: {
     width: bubbleWidth,
     height: 180,
   },
   twoImage: {
-    width: bubbleWidth / 2 - 6,
+    width: bubbleWidth / 2 - Spacing.sm,
     height: 120,
   },
   multiImage: {
-    width: bubbleWidth / 3 - 6,
+    width: bubbleWidth / 3 - Spacing.sm,
     height: 100,
   },
   captionContainer: {
-    padding: 16,
+    padding: Spacing.md,
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   captionText: {
-    color: "white",
+    color: ColorPalette.white,
     fontSize: 14,
     textAlign: "center",
   },
   titleText: {
-    fontSize: 15,
-    color: "#222",
-    fontWeight: "bold",
-    marginBottom: 6,
+    marginBottom: Spacing.xs,
   },
   modalContainer: {
     flex: 1,

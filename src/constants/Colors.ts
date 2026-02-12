@@ -7,8 +7,8 @@ const tintColorLight = "#0a7ea4";
 const tintColorDark = "#fff";
 
 export const primaryColor = "#08113a";
-export const secondaryColor = "#fff";
-export const thirdaryColor = "#e8a812";
+export const secondaryColor = "#ffffff";
+export const tertiaryColor = "#e8a812";
 
 export const Colors = {
   light: {

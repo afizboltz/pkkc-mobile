@@ -1,12 +1,12 @@
-import { primaryColor, thirdaryColor } from '@/src/constants/Colors';
+import { ThemedText } from '@/src/components/ThemedText';
+import { Button, Card } from '@/src/components/ui';
+import { BorderRadius, ColorPalette, Spacing } from '@/src/theme';
 import { useNavigation } from 'expo-router';
 import React from 'react';
 import {
     Image,
     SafeAreaView,
     StyleSheet,
-    Text,
-    TouchableOpacity,
     View
 } from 'react-native';
 
@@ -16,33 +16,38 @@ export default function PreLoginScreen() {
         <SafeAreaView style={styles.container}>
             <View style={styles.content}>
                 <View style={styles.logoContainer}>
-                    <View style={styles.logo}>
-                        <Image source={require('../src/assets/images/entity/pkkc.jpg')} style={styles.logoImage} />
-                    </View>
-                    <Text style={styles.tagline}>
+                    <Card variant="elevated" padding="lg" style={styles.logoCard}>
+                        <Image source={require('../src/assets/images/entity/logo_pkkc.png')} style={styles.logoImage} />
+                    </Card>
+                    <ThemedText type="bodyMedium" style={styles.tagline}>
                         Stay connected with community and get the latest updates
-                    </Text>
+                    </ThemedText>
                 </View>
 
                 <View style={styles.buttonContainer}>
+                    <Button
+                        variant="primary"
+                        size="lg"
+                        fullWidth
+                        onPress={() => navigation.navigate('login' as never)}
+                    >
+                        Sign In
+                    </Button>
 
-                    <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('login')}>
-                        <Text style={styles.primaryButtonText}>Sign In</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('signup')}>
-                        <Text style={styles.secondaryButtonText}>Sign Up</Text>
-                    </TouchableOpacity>
-                    {/* <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('pending')}>
-                        <Text style={styles.secondaryButtonText}>Pending Approval</Text>
-                    </TouchableOpacity> */}
-
+                    <Button
+                        variant="secondary"
+                        size="lg"
+                        fullWidth
+                        onPress={() => navigation.navigate('signup' as never)}
+                    >
+                        Sign Up
+                    </Button>
                 </View>
 
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>
+                    <ThemedText type="caption" style={styles.footerText}>
                         By continuing, you agree to our Terms of Service and Privacy Policy
-                    </Text>
+                    </ThemedText>
                 </View>
             </View>
         </SafeAreaView>
@@ -52,79 +57,46 @@ export default function PreLoginScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: ColorPalette.white,
     },
     content: {
         flex: 1,
-        paddingHorizontal: 32,
+        paddingHorizontal: Spacing.xl,
         justifyContent: 'center',
+        gap: Spacing.xxl,
     },
     logoContainer: {
         alignItems: 'center',
-        marginBottom: 64,
+        gap: Spacing.lg,
     },
-    logo: {
-        width: 120,
-        height: 120,
+    logoCard: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 140,
+        height: 140,
+        backgroundColor: ColorPalette.white,
     },
     logoImage: {
-        width: 120,
-        height: 120,
-    },
-    appName: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#1F2937',
-        marginBottom: 12,
+        width: 100,
+        height: 100,
+        borderRadius: BorderRadius.lg,
     },
     tagline: {
-        fontSize: 16,
-        color: '#6B7280',
         textAlign: 'center',
-        lineHeight: 24,
+        paddingHorizontal: Spacing.md,
+        color: ColorPalette.gray[600],
     },
     buttonContainer: {
-        gap: 16,
-        marginBottom: 32,
-    },
-    primaryButton: {
-        backgroundColor: primaryColor,
-        paddingVertical: 16,
-        paddingHorizontal: 32,
-        borderRadius: 12,
-        alignItems: 'center',
-        shadowColor: '#3B82F6',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    primaryButtonText: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: thirdaryColor,
-    },
-    secondaryButton: {
-        backgroundColor: 'transparent',
-        borderWidth: 2,
-        borderColor: primaryColor,
-        paddingVertical: 14,
-        paddingHorizontal: 32,
-        borderRadius: 12,
-        alignItems: 'center',
-    },
-    secondaryButtonText: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: primaryColor,
+        gap: Spacing.md,
+        width: '100%',
     },
     footer: {
         alignItems: 'center',
+        paddingTop: Spacing.sm,
     },
     footerText: {
-        fontSize: 12,
-        color: '#9CA3AF',
         textAlign: 'center',
-        lineHeight: 18,
+        color: ColorPalette.gray[500],
+        paddingHorizontal: Spacing.lg,
     },
 });
