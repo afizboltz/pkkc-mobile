@@ -44,7 +44,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build Android Staging APK
-        run: eas build --platform android --profile stg-apk --non-interactive
+        run: eas build --platform android --profile stg --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
@@ -56,7 +56,7 @@ jobs:
       - name: Download build artifacts
         run: |
           mkdir -p build-artifacts
-          eas build:view --platform android --profile stg-apk --non-interactive --output-path build-artifacts/android-build-info.json
+          eas build:view --platform android --profile stg --non-interactive --output-path build-artifacts/android-build-info.json
           eas build:view --platform ios --profile stg --non-interactive --output-path build-artifacts/ios-build-info.json
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
