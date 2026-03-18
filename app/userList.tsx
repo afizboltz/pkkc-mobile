@@ -3,14 +3,18 @@ import { getApprovedNewUsers } from "@/src/services/newUserApproval";
 import dayjs from "dayjs";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import React, { useEffect } from "react";
-import { Alert, FlatList, Image, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Alert, FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import Animated, { FadeInUp } from "react-native-reanimated";
+import { Card } from "@/src/components/ui/Card";
+import { Button } from "@/src/components/ui/Button";
+import { Ionicons } from "@expo/vector-icons";
+import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from "@/src/theme";
 
 export default function UserListScreen() {
-
-    const [renewals, setRenewals] = React.useState<any[]>([]);
-    const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
-    const [searchQuery, setSearchQuery] = React.useState<string>("");
+    const [renewals, setRenewals] = useState<any[]>([]);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState<string>("");
     const { t } = useTranslation();
 
     const fetchRenewals = async () => {
@@ -65,63 +69,256 @@ export default function UserListScreen() {
         }
     };
 
+    const filteredData = renewals.filter(u => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return true;
+        return (u.userFullName || '').toLowerCase().includes(q) || (u.userEmail || '').toLowerCase().includes(q);
+    });
 
+    const renderItem = ({ item, index }: { item: any; index: number }) => (
+        <Animated.View entering={FadeInUp.duration(400).delay(index * 50)}>
+            <Card variant="elevated" padding="md" style={styles.itemCard}>
+                <View style={styles.itemHeader}>
+                    <View style={styles.avatarContainer}>
+                        <Ionicons name="person" size={20} color={ColorPalette.primary[500]} />
+                    </View>
+                    <View style={styles.itemInfo}>
+                        <Text style={styles.itemName}>{item.userFullName || 'N/A'}</Text>
+                        <Text style={styles.itemEmail}>{item.userEmail || 'N/A'}</Text>
+                    </View>
+                </View>
+                
+                <View style={styles.itemDetails}>
+                    <View style={styles.detailRow}>
+                        <Ionicons name="call-outline" size={16} color={ColorPalette.gray[500]} />
+                        <Text style={styles.detailText}>{item.phoneNo || 'N/A'}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                        <Ionicons name="time-outline" size={16} color={ColorPalette.gray[500]} />
+                        <Text style={styles.detailText}>
+                            {item.submittedAtMillis ? dayjs(item.submittedAtMillis).format('DD MMM YYYY HH:mm a') : item.submittedAt || 'N/A'}
+                        </Text>
+                    </View>
+                </View>
 
+                {(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl) ? (
+                    <TouchableOpacity 
+                        onPress={() => setPreviewUrl(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl)} 
+                        style={styles.attachmentButton}
+                    >
+                        <Ionicons name="image-outline" size={18} color={ColorPalette.primary[500]} />
+                        <Text style={styles.attachmentText}>{t('viewAttachment')}</Text>
+                    </TouchableOpacity>
+                ) : null}
+            </Card>
+        </Animated.View>
+    );
 
     return (
-        <View style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>
-            <TextInput
-                placeholder={t('enterFullName')}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                style={{ marginBottom: 12, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 8 }}
-            />
-            {/* In case the header button isn't visible on some devices, also show an in-page action here */}
-            <View style={{ alignSelf: 'flex-end', marginBottom: 12 }}>
-                <TouchableOpacity onPress={onDownloadApprovedPdf} style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#111827', borderRadius: 8 }}>
-                    <Text style={{ color: 'white', fontWeight: '600' }}>Download PDF</Text>
-                </TouchableOpacity>
-            </View>
-            {renewals.length > 0 ? (
-                <View style={{ alignSelf: 'flex-end', marginBottom: 16 }}>
-                    <Text style={{ fontSize: 18, fontWeight: 'bold', textAlign: 'left' }}>{t('totalApprovedUserApproval')}: {renewals.length} </Text>
-                </View>
-            ) : (
-                <Text>{t('noPendingRenewals')}</Text>
-            )}
-            <FlatList
-                data={renewals.filter(u => {
-                    const q = searchQuery.trim().toLowerCase();
-                    if (!q) return true;
-                    return (u.userFullName || '').toLowerCase().includes(q) || (u.userEmail || '').toLowerCase().includes(q);
-                })}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <View style={{ padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginVertical: 6 }}>
-                        <Text>{t('user')}: {item.userFullName}</Text>
-                        <Text>{t('email')}: {item.userEmail}</Text>
-                        <Text>{t('phoneNo')}: {item.phoneNo}</Text>
-                        <Text>{t('submitted')}: {item.submittedAtMillis ? dayjs(item.submittedAtMillis).format('DD MMM YYYY HH:mm a') : item.submittedAt}</Text>
-
-                        {(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl) ? (
-                            <TouchableOpacity onPress={() => setPreviewUrl(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl)} style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#f1f5f9', borderRadius: 6 }}>
-                                <Text style={{ color: '#0f172a' }}>{t('viewAttachment')}</Text>
+        <View style={styles.container}>
+            <Animated.View entering={FadeInUp.duration(400)}>
+                <View style={styles.searchContainer}>
+                    <View style={styles.searchBox}>
+                        <Ionicons name="search" size={20} color={ColorPalette.gray[400]} />
+                        <TextInput
+                            placeholder={t('enterFullName')}
+                            placeholderTextColor={ColorPalette.gray[400]}
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            style={styles.searchInput}
+                        />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity onPress={() => setSearchQuery("")}>
+                                <Ionicons name="close-circle" size={20} color={ColorPalette.gray[400]} />
                             </TouchableOpacity>
-                        ) : null}
+                        )}
                     </View>
-                )}
-            />
+                </View>
+            </Animated.View>
+
+            <Animated.View entering={FadeInUp.duration(400).delay(100)}>
+                <View style={styles.headerRow}>
+                    <View style={styles.countBadge}>
+                        <Text style={styles.countText}>{renewals.length} Users</Text>
+                    </View>
+                    <Button 
+                        variant="primary" 
+                        size="sm"
+                        onPress={onDownloadApprovedPdf}
+                    >
+                        <Ionicons name="download-outline" size={16} color={ColorPalette.white} />
+                        PDF
+                    </Button>
+                </View>
+            </Animated.View>
+
+            {renewals.length > 0 ? (
+                <FlatList
+                    data={filteredData}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderItem}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="search" size={48} color={ColorPalette.gray[300]} />
+                            <Text style={styles.emptyText}>No results found</Text>
+                        </View>
+                    }
+                />
+            ) : (
+                <View style={styles.emptyContainer}>
+                    <Ionicons name="people-outline" size={48} color={ColorPalette.gray[300]} />
+                    <Text style={styles.emptyText}>{t('noPendingRenewals')}</Text>
+                </View>
+            )}
 
             <Modal visible={!!previewUrl} transparent animationType="fade" onRequestClose={() => setPreviewUrl(null)}>
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-                    <TouchableOpacity onPress={() => setPreviewUrl(null)} style={{ position: 'absolute', top: 40, right: 20, padding: 8 }}>
-                        <Text style={{ color: 'white', fontSize: 16 }}>{t('close')}</Text>
+                <View style={styles.modalContainer}>
+                    <TouchableOpacity onPress={() => setPreviewUrl(null)} style={styles.closeButton}>
+                        <Ionicons name="close" size={24} color={ColorPalette.white} />
                     </TouchableOpacity>
                     {previewUrl ? (
-                        <Image source={{ uri: previewUrl }} resizeMode="contain" style={{ width: '100%', height: '80%' }} />
+                        <Image source={{ uri: previewUrl }} resizeMode="contain" style={styles.modalImage} />
                     ) : null}
                 </View>
             </Modal>
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: ColorPalette.gray[50],
+        padding: Spacing.md,
+    },
+    searchContainer: {
+        marginBottom: Spacing.md,
+    },
+    searchBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: ColorPalette.white,
+        borderRadius: BorderRadius.lg,
+        paddingHorizontal: Spacing.md,
+        borderWidth: 1,
+        borderColor: ColorPalette.gray[200],
+        ...Shadow.sm,
+    },
+    searchInput: {
+        flex: 1,
+        paddingVertical: Spacing.md,
+        paddingLeft: Spacing.sm,
+        fontSize: Typography.fontSize.base,
+        color: ColorPalette.gray[700],
+    },
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.md,
+    },
+    countBadge: {
+        backgroundColor: ColorPalette.primary[100],
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.xs,
+        borderRadius: BorderRadius.full,
+    },
+    countText: {
+        fontSize: Typography.fontSize.sm,
+        fontWeight: Typography.fontWeight.semibold,
+        color: ColorPalette.primary[700],
+    },
+    listContent: {
+        paddingBottom: Spacing.xxl,
+    },
+    itemCard: {
+        marginBottom: Spacing.md,
+    },
+    itemHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: Spacing.sm,
+    },
+    avatarContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: BorderRadius.full,
+        backgroundColor: ColorPalette.primary[50],
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    itemInfo: {
+        flex: 1,
+        marginLeft: Spacing.md,
+    },
+    itemName: {
+        fontSize: Typography.fontSize.base,
+        fontWeight: Typography.fontWeight.semibold,
+        color: ColorPalette.gray[800],
+    },
+    itemEmail: {
+        fontSize: Typography.fontSize.sm,
+        color: ColorPalette.gray[500],
+    },
+    itemDetails: {
+        backgroundColor: ColorPalette.gray[50],
+        padding: Spacing.sm,
+        borderRadius: BorderRadius.md,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+        marginBottom: 4,
+    },
+    detailText: {
+        fontSize: Typography.fontSize.sm,
+        color: ColorPalette.gray[600],
+    },
+    attachmentButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: Spacing.sm,
+        paddingVertical: Spacing.xs,
+        backgroundColor: ColorPalette.primary[50],
+        borderRadius: BorderRadius.md,
+        gap: Spacing.xs,
+    },
+    attachmentText: {
+        fontSize: Typography.fontSize.sm,
+        color: ColorPalette.primary[500],
+        fontWeight: Typography.fontWeight.medium,
+    },
+    emptyContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+    },
+    emptyText: {
+        fontSize: Typography.fontSize.base,
+        color: ColorPalette.gray[400],
+        marginTop: Spacing.md,
+    },
+    modalContainer: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: Spacing.md,
+    },
+    closeButton: {
+        position: 'absolute',
+        top: 50,
+        right: 20,
+        zIndex: 10,
+        padding: Spacing.sm,
+    },
+    modalImage: {
+        width: '100%',
+        height: '80%',
+    },
+});

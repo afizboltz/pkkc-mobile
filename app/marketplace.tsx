@@ -1,19 +1,20 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   Alert,
-  Animated,
   Dimensions,
   FlatList,
   Image,
   Linking,
-  PanResponder,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
+import { Card } from "@/src/components/ui/Card";
+import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from "@/src/theme";
 
 interface Item {
   id: string;
@@ -22,7 +23,7 @@ interface Item {
   images: string[];
   description: string;
   isFavorite?: boolean;
-  whatsapp: string; // required
+  whatsapp: string;
   instagram?: string;
   facebook?: string;
 }
@@ -61,37 +62,6 @@ export default function MarketplaceScreen() {
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
 
-  const position = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-
-  // 🎯 PanResponder for swipe-down/side-close
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) =>
-        Math.abs(gesture.dy) > 10 || Math.abs(gesture.dx) > 10,
-      onPanResponderMove: Animated.event(
-        [null, { dx: position.x, dy: position.y }],
-        { useNativeDriver: false }
-      ),
-      onPanResponderRelease: (_, gesture) => {
-        if (gesture.dy > 100 || gesture.dx > 100) {
-          Animated.timing(position, {
-            toValue: { x: gesture.dx > 0 ? width : 0, y: height },
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => {
-            setSelectedItem(null);
-            position.setValue({ x: 0, y: 0 });
-          });
-        } else {
-          Animated.spring(position, {
-            toValue: { x: 0, y: 0 },
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
-
   const filteredItems = items.filter((item) =>
     item.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -120,72 +90,100 @@ export default function MarketplaceScreen() {
     );
   };
 
+  const renderItem = ({ item, index }: { item: Item; index: number }) => (
+    <Animated.View entering={FadeInUp.duration(400).delay(index * 100)} style={styles.cardWrapper}>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => setSelectedItem(item)}
+        activeOpacity={0.9}
+      >
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: item.images[0] }} style={styles.image} />
+          <TouchableOpacity
+            style={styles.favoriteBtn}
+            onPress={() => toggleFavorite(item.id)}
+          >
+            <Ionicons
+              name={item.isFavorite ? "heart" : "heart-outline"}
+              size={20}
+              color={item.isFavorite ? ColorPalette.error[500] : ColorPalette.gray[500]}
+            />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.cardContent}>
+          <Text style={styles.itemName} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <Text style={styles.itemPrice}>{item.price}</Text>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+
   const renderList = () => (
     <View style={styles.container}>
-      <Text style={styles.title}>Marketplace</Text>
+      <Animated.View 
+        style={styles.headerContainer}
+        entering={FadeInDown.duration(500)}
+      >
+        <Text style={styles.title}>Marketplace</Text>
+        <Text style={styles.subtitle}>Find great deals from your neighbors</Text>
+      </Animated.View>
 
-      {/* 🔍 Search */}
-      <View style={styles.searchBox}>
-        <Ionicons name="search" size={20} color="#777" />
-        <TextInput
-          placeholder="Search items..."
-          placeholderTextColor="#999"
-          style={styles.searchInput}
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
-
-      {/* 🛍️ Items Grid */}
-      <FlatList
-        data={filteredItems}
-        numColumns={2}
-        keyExtractor={(item) => item.id}
-        columnWrapperStyle={{ justifyContent: "space-between" }}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => setSelectedItem(item)}
-          >
-            <Image source={{ uri: item.images[0] }} style={styles.image} />
-            <TouchableOpacity
-              style={styles.favoriteBtn}
-              onPress={() => toggleFavorite(item.id)}
-            >
-              <Ionicons
-                name={item.isFavorite ? "heart" : "heart-outline"}
-                size={20}
-                color={item.isFavorite ? "#E91E63" : "#555"}
-              />
+      <Animated.View 
+        style={styles.searchContainer}
+        entering={FadeInUp.duration(400).delay(100)}
+      >
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={20} color={ColorPalette.gray[400]} />
+          <TextInput
+            placeholder="Search items..."
+            placeholderTextColor={ColorPalette.gray[400]}
+            style={styles.searchInput}
+            value={search}
+            onChangeText={setSearch}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch("")}>
+              <Ionicons name="close-circle" size={20} color={ColorPalette.gray[400]} />
             </TouchableOpacity>
-            <Text style={styles.itemName} numberOfLines={1}>
-              {item.name}
-            </Text>
-            <Text style={styles.itemPrice}>{item.price}</Text>
-          </TouchableOpacity>
-        )}
-      />
+          )}
+        </View>
+      </Animated.View>
+
+      <Animated.View entering={FadeInUp.duration(400).delay(200)}>
+        <FlatList
+          data={filteredItems}
+          numColumns={2}
+          keyExtractor={(item) => item.id}
+          columnWrapperStyle={styles.row}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          renderItem={renderItem}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="search" size={48} color={ColorPalette.gray[300]} />
+              <Text style={styles.emptyText}>No items found</Text>
+            </View>
+          }
+        />
+      </Animated.View>
     </View>
   );
 
   const renderDetails = (item: Item) => (
-    <Animated.View
-      style={[
-        styles.detailContainer,
-        {
-          transform: position.getTranslateTransform(),
-        },
-      ]}
-      {...panResponder.panHandlers}
-    >
-      {/* 🔙 Back Button */}
-      <TouchableOpacity
-        style={styles.backBtn}
-        onPress={() => setSelectedItem(null)}
+    <View style={styles.detailContainer}>
+      <Animated.View 
+        style={styles.detailHeader}
+        entering={FadeIn.duration(300)}
       >
-        <Ionicons name="arrow-back" size={22} color="#fff" />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => setSelectedItem(null)}
+        >
+          <Ionicons name="arrow-back" size={22} color={ColorPalette.white} />
+        </TouchableOpacity>
+      </Animated.View>
 
       <View style={styles.carouselContainer}>
         <FlatList
@@ -193,214 +191,268 @@ export default function MarketplaceScreen() {
           horizontal
           showsHorizontalScrollIndicator={false}
           keyExtractor={(_, i) => i.toString()}
-          renderItem={({ item }) => (
-            <Image source={{ uri: item }} style={styles.carouselImage} />
+          renderItem={({ item: img }) => (
+            <Image source={{ uri: img }} style={styles.carouselImage} />
           )}
         />
       </View>
 
-      <View style={styles.detailContent}>
-        <Text style={styles.detailTitle}>{item.name}</Text>
-        <Text style={styles.detailPrice}>{item.price}</Text>
-        <Text style={styles.detailDesc}>{item.description}</Text>
+      <Animated.View 
+        style={styles.detailContent}
+        entering={FadeInUp.duration(400).delay(100)}
+      >
+        <Card variant="elevated" padding="lg" style={styles.detailCard}>
+          <Text style={styles.detailTitle}>{item.name}</Text>
+          <Text style={styles.detailPrice}>{item.price}</Text>
+          <Text style={styles.detailDesc}>{item.description}</Text>
 
-        {/* 👤 Seller Contact */}
-        <View style={styles.sellerSection}>
-          <Text style={styles.sectionTitle}>Contact Seller</Text>
+          <View style={styles.sellerSection}>
+            <Text style={styles.sectionTitle}>Contact Seller</Text>
 
-          {/* ✅ WhatsApp (compulsory) */}
-          <TouchableOpacity
-            style={styles.contactRow}
-            onPress={() =>
-              openWhatsApp(
-                item.whatsapp,
-                `Hi! I'm interested in your product "${item.name}".`
-              )
-            }
-          >
-            <MaterialCommunityIcons
-              name="whatsapp"
-              size={22}
-              color="#25D366"
-            />
-            <Text style={[styles.contactText, { color: "#25D366" }]}>
-              Chat on WhatsApp
-            </Text>
-          </TouchableOpacity>
-
-          {item.instagram && (
             <TouchableOpacity
-              style={styles.contactRow}
-              onPress={() => openLink(`https://instagram.com/${item.instagram}`)}
+              style={styles.whatsappButton}
+              onPress={() =>
+                openWhatsApp(
+                  item.whatsapp,
+                  `Hi! I'm interested in your product "${item.name}".`
+                )
+              }
             >
               <MaterialCommunityIcons
-                name="instagram"
-                size={20}
-                color="#E1306C"
+                name="whatsapp"
+                size={22}
+                color={ColorPalette.white}
               />
-              <Text style={styles.contactText}>@{item.instagram}</Text>
+              <Text style={styles.whatsappButtonText}>Chat on WhatsApp</Text>
             </TouchableOpacity>
-          )}
 
-          {item.facebook && (
-            <TouchableOpacity
-              style={styles.contactRow}
-              onPress={() => openLink(`https://facebook.com/${item.facebook}`)}
-            >
-              <MaterialCommunityIcons
-                name="facebook"
-                size={20}
-                color="#1877F2"
-              />
-              <Text style={styles.contactText}>{item.facebook}</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    </Animated.View>
+            {item.instagram && (
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => openLink(`https://instagram.com/${item.instagram}`)}
+              >
+                <MaterialCommunityIcons
+                  name="instagram"
+                  size={20}
+                  color={ColorPalette.gray[700]}
+                />
+                <Text style={styles.socialText}>@{item.instagram}</Text>
+              </TouchableOpacity>
+            )}
+
+            {item.facebook && (
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => openLink(`https://facebook.com/${item.facebook}`)}
+              >
+                <MaterialCommunityIcons
+                  name="facebook"
+                  size={20}
+                  color={ColorPalette.gray[700]}
+                />
+                <Text style={styles.socialText}>{item.facebook}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </Card>
+      </Animated.View>
+    </View>
   );
 
   return selectedItem ? renderDetails(selectedItem) : renderList();
 }
 
-const { width, height } = Dimensions.get("window");
-const CARD_WIDTH = (width - 36) / 2;
+const { width } = Dimensions.get("window");
+const CARD_WIDTH = (width - Spacing.md * 3) / 2;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
-    paddingHorizontal: 12,
-    paddingTop: 16,
+    backgroundColor: ColorPalette.gray[50],
+    paddingHorizontal: Spacing.md,
+  },
+  headerContainer: {
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.sm,
   },
   title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#222",
+    fontSize: Typography.fontSize.xxl,
+    fontWeight: Typography.fontWeight.bold,
+    color: ColorPalette.gray[900],
+  },
+  subtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: ColorPalette.gray[500],
+    marginTop: 2,
+  },
+  searchContainer: {
+    marginBottom: Spacing.md,
   },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    marginVertical: 16,
+    backgroundColor: ColorPalette.white,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: ColorPalette.gray[200],
+    ...Shadow.sm,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 8,
-    paddingLeft: 6,
-    color: "#333",
+    paddingVertical: Spacing.md,
+    paddingLeft: Spacing.sm,
+    fontSize: Typography.fontSize.base,
+    color: ColorPalette.gray[700],
+  },
+  listContent: {
+    paddingBottom: Spacing.xxl,
+  },
+  row: {
+    justifyContent: "space-between",
+    marginBottom: Spacing.md,
+  },
+  cardWrapper: {
+    width: CARD_WIDTH,
+    marginRight: Spacing.md,
   },
   card: {
-    width: CARD_WIDTH,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    marginBottom: 16,
+    backgroundColor: ColorPalette.white,
+    borderRadius: BorderRadius.xl,
     overflow: "hidden",
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    ...Shadow.sm,
+  },
+  imageContainer: {
+    position: 'relative',
   },
   image: {
-    width: "100%",
+    width: '100%',
     height: 140,
   },
   favoriteBtn: {
-    position: "absolute",
-    right: 8,
-    top: 8,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderRadius: 50,
-    padding: 4,
+    position: 'absolute',
+    right: Spacing.sm,
+    top: Spacing.sm,
+    backgroundColor: ColorPalette.white,
+    borderRadius: BorderRadius.full,
+    padding: 6,
+    ...Shadow.sm,
+  },
+  cardContent: {
+    padding: Spacing.md,
   },
   itemName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginTop: 8,
-    marginHorizontal: 8,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: ColorPalette.gray[800],
   },
   itemPrice: {
-    fontSize: 13,
-    color: "#0A8754",
-    fontWeight: "600",
-    marginBottom: 10,
-    marginHorizontal: 8,
+    fontSize: Typography.fontSize.sm,
+    color: ColorPalette.success[600],
+    fontWeight: Typography.fontWeight.bold,
+    marginTop: 4,
   },
   detailContainer: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: ColorPalette.gray[50],
+  },
+  detailHeader: {
+    position: 'absolute',
+    top: 50,
+    left: Spacing.md,
+    zIndex: 10,
   },
   backBtn: {
-    position: "absolute",
-    top: 50,
-    left: 20,
-    zIndex: 10,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    borderRadius: 20,
-    padding: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: BorderRadius.full,
+    padding: Spacing.sm,
   },
-  detailImage: {
-    width,
-    height: 300,
-
+  carouselContainer: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: ColorPalette.gray[900],
+  },
+  carouselImage: {
+    width: width,
+    height: '100%',
+    resizeMode: 'cover',
   },
   detailContent: {
-    padding: 16,
-    backgroundColor: 'yellow'
+    flex: 1,
+    marginTop: -Spacing.xl,
+  },
+  detailCard: {
+    flex: 1,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
   },
   detailTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#222",
-    marginBottom: 6,
+    fontSize: Typography.fontSize.xxl,
+    fontWeight: Typography.fontWeight.bold,
+    color: ColorPalette.gray[900],
+    marginBottom: Spacing.xs,
   },
   detailPrice: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#0A8754",
-    marginBottom: 10,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: ColorPalette.success[600],
+    marginBottom: Spacing.md,
   },
   detailDesc: {
-    fontSize: 14,
-    color: "#555",
-    lineHeight: 20,
-    marginBottom: 20,
+    fontSize: Typography.fontSize.base,
+    color: ColorPalette.gray[600],
+    lineHeight: 24,
+    marginBottom: Spacing.lg,
   },
   sellerSection: {
     borderTopWidth: 1,
-    borderTopColor: "#ddd",
-    paddingTop: 16,
+    borderTopColor: ColorPalette.gray[200],
+    paddingTop: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#222",
-    marginBottom: 10,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: ColorPalette.gray[800],
+    marginBottom: Spacing.md,
   },
-  contactRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
+  whatsappButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ColorPalette.success[500],
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
   },
-  contactText: {
-    color: "#333",
-    marginLeft: 10,
-    fontSize: 14,
+  whatsappButtonText: {
+    color: ColorPalette.white,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
   },
-  carouselContainer: {
-    width: "100%",
-    aspectRatio: 1, // ✅ keeps it square and removes extra whitespace
-    backgroundColor: "#000", // optional, for contrast
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: ColorPalette.gray[100],
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
   },
-
-  carouselImage: {
-    width: Dimensions.get("window").width,
-    height: "100%", // ✅ ensures it fills container
-    resizeMode: "cover",
+  socialText: {
+    color: ColorPalette.gray[700],
+    fontSize: Typography.fontSize.sm,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 60,
+  },
+  emptyText: {
+    fontSize: Typography.fontSize.base,
+    color: ColorPalette.gray[400],
+    marginTop: Spacing.md,
   },
 });

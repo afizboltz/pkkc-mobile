@@ -6,6 +6,7 @@
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
+    "android:stg1": "EXPO_PUBLIC_ENV=stg expo run:android --variant stgDebug",
     "android:stg": "EXPO_PUBLIC_ENV=stg expo run:android",
     "android:ppd": "EXPO_PUBLIC_ENV=ppd expo run:android",
     "android:prd": "EXPO_PUBLIC_ENV=prd expo run:android",

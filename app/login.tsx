@@ -6,6 +6,7 @@ import { useNavigation } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Alert,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -15,8 +16,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
 import { useTranslation } from '@/src/i18n';
+import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from '@/src/theme';
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 export default function LoginScreen() {
   const { loading } = useAuth();
@@ -27,6 +38,12 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { t } = useTranslation();
+
+  const buttonScale = useSharedValue(1);
+
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+  }));
 
   const handleLogin = async () => {
     if (!icNo.trim() || !password.trim()) {
@@ -46,6 +63,14 @@ export default function LoginScreen() {
     }
   };
 
+  const handleButtonPressIn = () => {
+    buttonScale.value = withSpring(0.95);
+  };
+
+  const handleButtonPressOut = () => {
+    buttonScale.value = withSpring(1);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -53,31 +78,48 @@ export default function LoginScreen() {
         style={styles.keyboardAvoid}
       >
         <View style={styles.content}>
-          <View style={styles.header}>
+          <Animated.View 
+            style={styles.header}
+            entering={FadeInDown.duration(600).springify()}
+          >
+            <View style={styles.logoContainer}>
+              <View style={styles.logoPlaceholder}>
+                <Ionicons name="people" size={48} color={ColorPalette.white} />
+              </View>
+            </View>
             <Text style={styles.title}>{t('welcomeBack')}</Text>
             <Text style={styles.subtitle}>{t('signInToAccount')}</Text>
-          </View>
+          </Animated.View>
 
-          <View style={styles.form}>
+          <Animated.View 
+            style={styles.form}
+            entering={FadeInUp.duration(600).delay(200).springify()}
+          >
             <View style={styles.inputContainer}>
               <Text style={styles.label}>{t('icNo')}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t('enterYourIcNo')}
-                value={icNo}
-                onChangeText={setIcNo}
-                keyboardType="number-pad"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+              <View style={styles.inputWrapper}>
+                <Ionicons name="card-outline" size={20} color={ColorPalette.gray[400]} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder={t('enterYourIcNo')}
+                  placeholderTextColor={ColorPalette.gray[400]}
+                  value={icNo}
+                  onChangeText={setIcNo}
+                  keyboardType="number-pad"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>{t('passwordLabel')}</Text>
-              <View style={styles.passwordContainer}>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="lock-closed-outline" size={20} color={ColorPalette.gray[400]} style={styles.inputIcon} />
                 <TextInput
                   style={styles.passwordInput}
                   placeholder={t('enterYourPassword')}
+                  placeholderTextColor={ColorPalette.gray[400]}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -89,29 +131,42 @@ export default function LoginScreen() {
                   <Ionicons
                     name={showPassword ? 'eye-off' : 'eye'}
                     size={20}
-                    color="#6B7280"
+                    color={ColorPalette.gray[500]}
                   />
                 </TouchableOpacity>
               </View>
             </View>
 
-            <TouchableOpacity
-              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-              onPress={handleLogin}
-              disabled={loading}
-            >
-              <Text style={styles.loginButtonText}>
-                {loading ? t('signingIn') : t('signIn')}
-              </Text>
-            </TouchableOpacity>
+            <Animated.View style={buttonAnimatedStyle}>
+              <AnimatedTouchableOpacity
+                style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+                onPress={handleLogin}
+                onPressIn={handleButtonPressIn}
+                onPressOut={handleButtonPressOut}
+                disabled={loading}
+                entering={FadeInUp.duration(400).delay(400)}
+              >
+                {loading ? (
+                  <ActivityIndicator color={ColorPalette.white} />
+                ) : (
+                  <>
+                    <Text style={styles.loginButtonText}>{t('signIn')}</Text>
+                    <Ionicons name="arrow-forward" size={20} color={ColorPalette.white} />
+                  </>
+                )}
+              </AnimatedTouchableOpacity>
+            </Animated.View>
 
-            <View style={styles.footer}>
+            <Animated.View 
+              style={styles.footer}
+              entering={FadeInUp.duration(400).delay(500)}
+            >
               <Text style={styles.footerText}>{t('dontHaveAccount')}</Text>
               <TouchableOpacity onPress={() => { navigation.navigate('signup' as never) }}>
                 <Text style={styles.linkText}>{t('signUp')}</Text>
               </TouchableOpacity>
-            </View>
-          </View>
+            </Animated.View>
+          </Animated.View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -121,105 +176,118 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: ColorPalette.gray[50],
   },
   keyboardAvoid: {
     flex: 1,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 32,
-    paddingTop: 20,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xxl,
   },
   header: {
-    marginBottom: 48,
+    alignItems: 'center',
+    marginBottom: Spacing.xxl,
   },
-  backButton: {
-    alignSelf: 'flex-start',
-    padding: 8,
-    marginBottom: 24,
+  logoContainer: {
+    marginBottom: Spacing.lg,
+  },
+  logoPlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: ColorPalette.primary[500],
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadow.lg,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 8,
+    fontSize: Typography.fontSize.xxxl,
+    fontWeight: Typography.fontWeight.bold,
+    color: ColorPalette.gray[900],
+    marginBottom: Spacing.xs,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: Typography.fontSize.base,
+    color: ColorPalette.gray[500],
+    textAlign: 'center',
   },
   form: {
     flex: 1,
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: ColorPalette.gray[700],
+    marginBottom: Spacing.xs,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#1F2937',
-    backgroundColor: '#F9FAFB',
-  },
-  passwordContainer: {
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: ColorPalette.white,
+    borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    backgroundColor: '#F9FAFB',
+    borderColor: ColorPalette.gray[200],
+    ...Shadow.sm,
+  },
+  inputIcon: {
+    paddingHorizontal: Spacing.md,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    paddingRight: Spacing.md,
+    fontSize: Typography.fontSize.base,
+    color: ColorPalette.gray[900],
   },
   passwordInput: {
     flex: 1,
-    padding: 16,
-    fontSize: 16,
-    color: '#1F2937',
+    paddingVertical: Spacing.md,
+    paddingRight: Spacing.xs,
+    fontSize: Typography.fontSize.base,
+    color: ColorPalette.gray[900],
   },
   eyeButton: {
-    padding: 16,
+    padding: Spacing.md,
   },
   loginButton: {
-    backgroundColor: '#3B82F6',
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: ColorPalette.primary[500],
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
-    marginTop: 16,
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+    ...Shadow.md,
   },
   loginButtonDisabled: {
     opacity: 0.6,
   },
   loginButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: ColorPalette.white,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 32,
+    marginTop: Spacing.xl,
+    gap: Spacing.xs,
   },
   footerText: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: Typography.fontSize.base,
+    color: ColorPalette.gray[500],
   },
   linkText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#3B82F6',
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: ColorPalette.primary[500],
   },
 });

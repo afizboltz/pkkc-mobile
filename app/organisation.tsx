@@ -1,8 +1,13 @@
-import { Colors, primaryColor, thirdaryColor } from '@/src/constants/Colors';
+import { Colors, primaryColor } from '@/src/constants/Colors';
 import { Stack } from 'expo-router';
 import React from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Card } from '@/src/components/ui/Card';
+import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from '@/src/theme';
+
+const tertiaryColor = "#e8a812";
 
 interface CommitteeMember {
     id: number;
@@ -28,31 +33,33 @@ const committeeMembers: CommitteeMember[] = [
     { id: 14, name: 'ABDUL RAHMAN BIN MUSTAPHA', position: 'AJK PKKC', level: 4 },
 ];
 
-const OrganizationCard: React.FC<{ member: CommitteeMember }> = ({ member }) => {
+const OrganizationCard: React.FC<{ member: CommitteeMember; index: number }> = ({ member, index }) => {
+    const getCardStyle = () => {
+        switch (member.level) {
+            case 1:
+                return styles.chairmanCard;
+            case 2:
+                return styles.deputyCard;
+            case 3:
+                return styles.managementCard;
+            case 4:
+                return styles.memberCard;
+            default:
+                return styles.memberCard;
+        }
+    };
+
     return (
-        <View style={[styles.card, getCardStyle(member.level)]}>
-            <Text style={styles.position}>{member.position}</Text>
-            <Text style={styles.name}>{member.name}</Text>
-        </View>
+        <Animated.View entering={FadeInDown.duration(400).delay(index * 50)}>
+            <View style={[styles.card, getCardStyle()]}>
+                <Text style={styles.position}>{member.position}</Text>
+                <Text style={styles.name}>{member.name}</Text>
+            </View>
+        </Animated.View>
     );
 };
 
-const getCardStyle = (level: number) => {
-    switch (level) {
-        case 1:
-            return styles.chairmanCard;
-        case 2:
-            return styles.deputyCard;
-        case 3:
-            return styles.managementCard;
-        case 4:
-            return styles.memberCard;
-        default:
-            return styles.memberCard;
-    }
-};
-
-const ConnectorLine: React.FC<{ height?: number }> = ({ height = 30 }) => {
+const ConnectorLine: React.FC<{ height?: number }> = ({ height = 20 }) => {
     return <View style={[styles.connector, { height }]} />;
 };
 
@@ -68,66 +75,78 @@ export default function OrganisationScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
+                <Animated.View 
+                    style={styles.headerSection}
+                    entering={FadeInDown.duration(500)}
+                >
+                    <Text style={styles.headerTitle}>Jawatankuasa PKKC</Text>
+                    <Text style={styles.headerSubtitle}>Persatuan Komuniti Kita Cybersouth</Text>
+                </Animated.View>
+
                 <View style={styles.chartContainer}>
-                    {/* Chairman */}
-                    <View style={styles.levelContainer}>
-                        <OrganizationCard member={committeeMembers[0]} />
-                    </View>
+                    <Animated.View entering={FadeInDown.duration(400).delay(100)}>
+                        <View style={styles.levelContainer}>
+                            <OrganizationCard member={committeeMembers[0]} index={0} />
+                        </View>
+                    </Animated.View>
 
                     <ConnectorLine />
 
-                    {/* Deputy Chairman */}
-                    <View style={styles.levelContainer}>
-                        <OrganizationCard member={committeeMembers[1]} />
-                    </View>
+                    <Animated.View entering={FadeInDown.duration(400).delay(150)}>
+                        <View style={styles.levelContainer}>
+                            <OrganizationCard member={committeeMembers[1]} index={1} />
+                        </View>
+                    </Animated.View>
 
                     <ConnectorLine />
 
-                    {/* Management Level (Secretary, Assistant Secretary, Treasurer) */}
-                    <View style={styles.managementLevel}>
-                        <View style={styles.managementRow}>
-                            <OrganizationCard member={committeeMembers[2]} />
+                    <Animated.View entering={FadeInDown.duration(400).delay(200)}>
+                        <View style={styles.managementLevel}>
+                            <View style={styles.managementRow}>
+                                <OrganizationCard member={committeeMembers[2]} index={2} />
+                            </View>
+                            <View style={styles.managementRow}>
+                                <OrganizationCard member={committeeMembers[3]} index={3} />
+                            </View>
+                            <View style={styles.managementRow}>
+                                <OrganizationCard member={committeeMembers[4]} index={4} />
+                            </View>
                         </View>
-                        <View style={styles.managementRow}>
-                            <OrganizationCard member={committeeMembers[3]} />
-                        </View>
-                        <View style={styles.managementRow}>
-                            <OrganizationCard member={committeeMembers[4]} />
-                        </View>
-                    </View>
+                    </Animated.View>
 
                     <ConnectorLine />
 
-                    {/* Committee Members */}
-                    <View style={styles.membersLevel}>
-                        <View style={styles.membersRow}>
-                            <OrganizationCard member={committeeMembers[5]} />
+                    <Animated.View entering={FadeInDown.duration(400).delay(300)}>
+                        <View style={styles.membersLevel}>
+                            <View style={styles.membersRow}>
+                                <OrganizationCard member={committeeMembers[5]} index={5} />
+                            </View>
+                            <View style={styles.membersRow}>
+                                <OrganizationCard member={committeeMembers[6]} index={6} />
+                            </View>
+                            <View style={styles.membersRow}>
+                                <OrganizationCard member={committeeMembers[7]} index={7} />
+                            </View>
+                            <View style={styles.membersRow}>
+                                <OrganizationCard member={committeeMembers[8]} index={8} />
+                            </View>
+                            <View style={styles.membersRow}>
+                                <OrganizationCard member={committeeMembers[9]} index={9} />
+                            </View>
+                            <View style={styles.membersRow}>
+                                <OrganizationCard member={committeeMembers[10]} index={10} />
+                            </View>
+                            <View style={styles.membersRow}>
+                                <OrganizationCard member={committeeMembers[11]} index={11} />
+                            </View>
+                            <View style={styles.membersRow}>
+                                <OrganizationCard member={committeeMembers[12]} index={12} />
+                            </View>
+                            <View style={styles.membersRow}>
+                                <OrganizationCard member={committeeMembers[13]} index={13} />
+                            </View>
                         </View>
-                        <View style={styles.membersRow}>
-                            <OrganizationCard member={committeeMembers[6]} />
-                        </View>
-                        <View style={styles.membersRow}>
-                            <OrganizationCard member={committeeMembers[7]} />
-                        </View>
-                        <View style={styles.membersRow}>
-                            <OrganizationCard member={committeeMembers[8]} />
-                        </View>
-                        <View style={styles.membersRow}>
-                            <OrganizationCard member={committeeMembers[9]} />
-                        </View>
-                        <View style={styles.membersRow}>
-                            <OrganizationCard member={committeeMembers[10]} />
-                        </View>
-                        <View style={styles.membersRow}>
-                            <OrganizationCard member={committeeMembers[11]} />
-                        </View>
-                        <View style={styles.membersRow}>
-                            <OrganizationCard member={committeeMembers[12]} />
-                        </View>
-                        <View style={styles.membersRow}>
-                            <OrganizationCard member={committeeMembers[13]} />
-                        </View>
-                    </View>
+                    </Animated.View>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -137,30 +156,45 @@ export default function OrganisationScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.light.background,
+        backgroundColor: ColorPalette.gray[50],
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        padding: 20,
-        paddingBottom: 40,
+        padding: Spacing.md,
+        paddingBottom: Spacing.xxxl,
+    },
+    headerSection: {
+        alignItems: 'center',
+        marginBottom: Spacing.xl,
+        paddingVertical: Spacing.lg,
+    },
+    headerTitle: {
+        fontSize: Typography.fontSize.xxl,
+        fontWeight: Typography.fontWeight.bold,
+        color: ColorPalette.primary[600],
+    },
+    headerSubtitle: {
+        fontSize: Typography.fontSize.sm,
+        color: ColorPalette.gray[500],
+        marginTop: Spacing.xs,
     },
     chartContainer: {
         alignItems: 'center',
     },
     levelContainer: {
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: Spacing.xs,
     },
     managementLevel: {
         width: '100%',
-        marginBottom: 10,
+        marginBottom: Spacing.xs,
     },
     managementRow: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginBottom: 10,
+        marginBottom: Spacing.xs,
     },
     membersLevel: {
         width: '100%',
@@ -168,60 +202,53 @@ const styles = StyleSheet.create({
     membersRow: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginBottom: 10,
+        marginBottom: Spacing.xs,
     },
     card: {
-        padding: 15,
-        borderRadius: 10,
+        padding: Spacing.md,
+        borderRadius: BorderRadius.lg,
         alignItems: 'center',
         justifyContent: 'center',
         minWidth: 200,
-        maxWidth: 280,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 3.84,
-        elevation: 5,
+        maxWidth: 300,
+        ...Shadow.md,
     },
     chairmanCard: {
-        backgroundColor: primaryColor,
+        backgroundColor: ColorPalette.primary[600],
         borderWidth: 2,
-        borderColor: thirdaryColor,
+        borderColor: tertiaryColor,
     },
     deputyCard: {
-        backgroundColor: '#1a2f5a',
+        backgroundColor: ColorPalette.primary[700],
         borderWidth: 1,
-        borderColor: thirdaryColor,
+        borderColor: tertiaryColor,
     },
     managementCard: {
-        backgroundColor: '#2a4f7a',
+        backgroundColor: ColorPalette.primary[800],
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: ColorPalette.gray[400],
     },
     memberCard: {
-        backgroundColor: '#3a6f9a',
+        backgroundColor: ColorPalette.primary[900],
         borderWidth: 1,
-        borderColor: '#ddd',
+        borderColor: ColorPalette.gray[500],
     },
     position: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#fff',
+        fontSize: Typography.fontSize.sm,
+        fontWeight: Typography.fontWeight.bold,
+        color: ColorPalette.white,
         textAlign: 'center',
-        marginBottom: 5,
+        marginBottom: 4,
     },
     name: {
-        fontSize: 12,
-        color: '#fff',
+        fontSize: Typography.fontSize.xs,
+        color: ColorPalette.white,
         textAlign: 'center',
         opacity: 0.9,
     },
     connector: {
         width: 2,
-        backgroundColor: '#ccc',
-        marginVertical: 5,
+        backgroundColor: ColorPalette.gray[300],
+        marginVertical: 4,
     },
 });

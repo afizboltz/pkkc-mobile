@@ -8,29 +8,27 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { useTranslation } from "@/src/i18n";
 import { getRenewalStatusFromProfile } from "@/src/services/renewMembership";
 import { useAuth } from "../src/hooks/useAuth";
+import { Card } from "@/src/components/ui/Card";
+import { Button } from "@/src/components/ui/Button";
+import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from "@/src/theme";
+
+const AnimatedView = Animated.createAnimatedComponent(View);
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const { userProfile } = useAuth();
   const { t } = useTranslation();
 
-  // Coming Soon
-  const documents = [
-    // { id: "1", name: "Certificate - EMAC 2024", url: "https://example.com/cert.pdf" },
-    // { id: "2", name: "Receipt - Renewal 2025", url: "https://example.com/receipt.pdf" },
-  ];
+  const documents: { id: string; name: string; url: string }[] = [];
 
-  const activities = [
-    { id: "1", title: "Charity Run 2024", date: "12 Jan 2024" },
-    { id: "2", title: "Community Cleanup", date: "4 May 2024" },
-    { id: "3", title: "Technical Workshop", date: "8 Jul 2024" },
-  ];
+  const activities: { id: string; title: string; date: string }[] = [];
 
   const getProfilePicture = (userPic: string) => {
     if (userPic) {
@@ -42,86 +40,148 @@ export default function ProfileScreen() {
 
   const renewStatus = getRenewalStatusFromProfile(userProfile);
 
+  const getStatusColor = () => {
+    switch (renewStatus) {
+      case "near_expiry":
+        return ColorPalette.warning[500];
+      case "pending":
+        return ColorPalette.info[500];
+      case "completed":
+        return ColorPalette.success[500];
+      default:
+        return ColorPalette.gray[500];
+    }
+  };
+
+  const getStatusText = () => {
+    switch (renewStatus) {
+      case "near_expiry":
+        return t('renewNow');
+      case "pending":
+        return t('pendingApprovalByAdmin');
+      case "completed":
+        return t('renewalCompleted');
+      default:
+        return '';
+    }
+  };
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <Text style={styles.header}>{t('profileHeader')}</Text>
-
-      {/* 🧍 Basic Info */}
-      <View style={styles.profileCard}>
-        <View style={styles.profileRow}>
-          <Image source={getProfilePicture(userProfile?.profileImage)} style={styles.profileImage} />
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.profileName}>{userProfile?.fullName}</Text>
-            <Text style={styles.profileEmail}>{userProfile?.email}</Text>
-            <Text style={styles.profileMemberId}>{userProfile?.pkkcID}</Text>
-          </View>
-          {/* <TouchableOpacity>
-            <Ionicons name="create-outline" size={20} color="#007AFF" />
-          </TouchableOpacity> */}
+      <AnimatedView entering={FadeInDown.duration(500).springify()}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{t('profileHeader')}</Text>
         </View>
-      </View>
+      </AnimatedView>
 
-      {/* 📄 Documents */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('documents')}</Text>
-        <Text style={styles.comingSoonText}>{t('comingSoonText')}</Text>
-        {/* {documents.map((doc) => (
-          <TouchableOpacity
-            key={doc.id}
-            style={styles.documentItem}
-            onPress={() => Linking.openURL(doc.url)}
-          >
-            <Ionicons name="document-outline" size={22} color="#007AFF" />
-            <Text style={styles.documentName}>{doc.name}</Text>
-            <Ionicons name="download-outline" size={20} color="#777" />
-          </TouchableOpacity>
-        ))} */}
-      </View>
-
-      {/* 💳 Renewal */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('membershipRenewal')}</Text>
-        <View style={styles.renewalCard}>
-          <Text style={styles.renewalText}>
-            {t('membershipValidUntil')}{" "}
-            <Text style={{ fontWeight: "700" }}>{userProfile?.membershipExpiry}</Text>
-          </Text>
-          {renewStatus === "near_expiry" && (
-            <TouchableOpacity style={styles.renewButton} onPress={() => navigation.navigate('renewMembership' as never)}>
-              <Ionicons name="cash-outline" size={18} color="#fff" />
-              <Text style={styles.renewText}>{t('renewNow')}</Text>
-            </TouchableOpacity>
-          )}
-          {renewStatus === "pending" && (
-            <Text style={[styles.renewalText, { fontStyle: 'italic', color: '#FFA500' }]}>{t('pendingApprovalByAdmin')}</Text>
-          )}
-          {renewStatus === "completed" && (
-            <Text style={styles.renewalText}>
-              {t('renewalCompleted')}            </Text>
-          )}
-        </View>
-      </View>
-
-      {/* 🏃 Activities */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('activitiesJoined')}</Text>
-        <Text style={styles.comingSoonText}>{t('comingSoonText')}</Text>
-        <FlatList
-          data={[] as any[]}
-          keyExtractor={(item: any) => item.id}
-          scrollEnabled={false}
-          renderItem={({ item }: { item: any }) => (
-            <View style={styles.activityCard}>
-              <Ionicons name="calendar-outline" size={20} color="#007AFF" />
-              <View style={{ marginLeft: 10 }}>
-                <Text style={styles.activityTitle}>{item.title}</Text>
-                <Text style={styles.activityDate}>{item.date}</Text>
+      <AnimatedView entering={FadeInUp.duration(500).delay(100).springify()}>
+        <Card variant="elevated" padding="lg">
+          <View style={styles.profileCard}>
+            <View style={styles.avatarContainer}>
+              <Image source={getProfilePicture(userProfile?.profileImage)} style={styles.profileImage} />
+              <View style={styles.editButton}>
+                <Ionicons name="camera" size={16} color={ColorPalette.white} />
               </View>
             </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{userProfile?.fullName}</Text>
+              <Text style={styles.profileEmail}>{userProfile?.email}</Text>
+              <View style={styles.memberIdContainer}>
+                <Ionicons name="card" size={14} color={ColorPalette.primary[500]} />
+                <Text style={styles.profileMemberId}>{userProfile?.pkkcID}</Text>
+              </View>
+            </View>
+          </View>
+        </Card>
+      </AnimatedView>
+
+      <AnimatedView entering={FadeInUp.duration(500).delay(200).springify()}>
+        <Card variant="elevated" padding="lg" style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="document-text" size={20} color={ColorPalette.primary[500]} />
+            <Text style={styles.sectionTitle}>{t('documents')}</Text>
+          </View>
+          {documents.length > 0 ? (
+            documents.map((doc) => (
+              <TouchableOpacity key={doc.id} style={styles.documentItem}>
+                <Ionicons name="document-outline" size={22} color={ColorPalette.primary[500]} />
+                <Text style={styles.documentName}>{doc.name}</Text>
+                <Ionicons name="download-outline" size={20} color={ColorPalette.gray[400]} />
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.comingSoonContainer}>
+              <Ionicons name="time-outline" size={32} color={ColorPalette.gray[300]} />
+              <Text style={styles.comingSoonText}>{t('comingSoonText')}</Text>
+            </View>
           )}
-        />
-      </View>
+        </Card>
+      </AnimatedView>
+
+      <AnimatedView entering={FadeInUp.duration(500).delay(300).springify()}>
+        <Card variant="elevated" padding="lg" style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="card" size={20} color={ColorPalette.success[500]} />
+            <Text style={styles.sectionTitle}>{t('membershipRenewal')}</Text>
+          </View>
+          <View style={styles.renewalCard}>
+            <View style={styles.renewalInfo}>
+              <Text style={styles.renewalLabel}>{t('membershipValidUntil')}</Text>
+              <Text style={styles.renewalValue}>{userProfile?.membershipExpiry || 'N/A'}</Text>
+            </View>
+            
+            <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor()}15` }]}>
+              <View style={[styles.statusDot, { backgroundColor: getStatusColor() }]} />
+              <Text style={[styles.statusText, { color: getStatusColor() }]}>{getStatusText()}</Text>
+            </View>
+
+            {renewStatus === "near_expiry" && (
+              <Button 
+                variant="primary" 
+                size="md" 
+                fullWidth
+                onPress={() => navigation.navigate('renewMembership' as never)}
+                style={styles.renewButton}
+              >
+                <Ionicons name="cash-outline" size={18} color={ColorPalette.white} />
+                <Text style={styles.renewButtonText}>{t('renewNow')}</Text>
+              </Button>
+            )}
+          </View>
+        </Card>
+      </AnimatedView>
+
+      <AnimatedView entering={FadeInUp.duration(500).delay(400).springify()}>
+        <Card variant="elevated" padding="lg" style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="calendar" size={20} color={ColorPalette.info[500]} />
+            <Text style={styles.sectionTitle}>{t('activitiesJoined')}</Text>
+          </View>
+          {activities.length > 0 ? (
+            <FlatList
+              data={activities}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+              renderItem={({ item }) => (
+                <View style={styles.activityCard}>
+                  <Ionicons name="calendar-outline" size={20} color={ColorPalette.info[500]} />
+                  <View style={{ marginLeft: Spacing.md }}>
+                    <Text style={styles.activityTitle}>{item.title}</Text>
+                    <Text style={styles.activityDate}>{item.date}</Text>
+                  </View>
+                </View>
+              )}
+            />
+          ) : (
+            <View style={styles.comingSoonContainer}>
+              <Ionicons name="calendar-outline" size={32} color={ColorPalette.gray[300]} />
+              <Text style={styles.comingSoonText}>{t('comingSoonText')}</Text>
+            </View>
+          )}
+        </Card>
+      </AnimatedView>
+
+      <View style={styles.bottomSpacer} />
     </ScrollView>
   );
 }
@@ -129,128 +189,176 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    backgroundColor: ColorPalette.gray[50],
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
   },
   header: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#222",
-    marginBottom: 16,
+    marginBottom: Spacing.md,
+  },
+  headerTitle: {
+    fontSize: Typography.fontSize.xxl,
+    fontWeight: Typography.fontWeight.bold,
+    color: ColorPalette.gray[900],
   },
   profileCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  profileRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  avatarContainer: {
+    position: 'relative',
   },
   profileImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 50,
+    width: 72,
+    height: 72,
+    borderRadius: BorderRadius.full,
+  },
+  editButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: BorderRadius.full,
+    backgroundColor: ColorPalette.primary[500],
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: ColorPalette.white,
+  },
+  profileInfo: {
+    flex: 1,
+    marginLeft: Spacing.md,
   },
   profileName: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#222",
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    color: ColorPalette.gray[900],
   },
   profileEmail: {
-    fontSize: 14,
-    color: "#555",
+    fontSize: Typography.fontSize.sm,
+    color: ColorPalette.gray[500],
     marginTop: 2,
   },
-  profileMemberId: {
-    fontSize: 13,
-    color: "#777",
-    marginTop: 4,
+  memberIdContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+    backgroundColor: ColorPalette.primary[50],
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    alignSelf: 'flex-start',
   },
-  section: {
-    marginBottom: 20,
+  profileMemberId: {
+    fontSize: Typography.fontSize.xs,
+    color: ColorPalette.primary[600],
+    fontWeight: Typography.fontWeight.medium,
+    marginLeft: 4,
+  },
+  sectionCard: {
+    marginTop: Spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#222",
-    marginBottom: 10,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: ColorPalette.gray[800],
   },
   documentItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 10,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    backgroundColor: ColorPalette.gray[50],
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.sm,
   },
   documentName: {
     flex: 1,
-    marginLeft: 10,
-    fontSize: 14,
-    color: "#333",
+    marginLeft: Spacing.md,
+    fontSize: Typography.fontSize.sm,
+    color: ColorPalette.gray[700],
   },
   renewalCard: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 16,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    backgroundColor: ColorPalette.gray[50],
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
   },
-  renewalText: {
-    fontSize: 14,
-    color: "#333",
-    marginBottom: 12,
+  renewalInfo: {
+    marginBottom: Spacing.sm,
+  },
+  renewalLabel: {
+    fontSize: Typography.fontSize.sm,
+    color: ColorPalette.gray[500],
+  },
+  renewalValue: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    color: ColorPalette.gray[800],
+    marginTop: 2,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    alignSelf: 'flex-start',
+    marginBottom: Spacing.md,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: Spacing.xs,
+  },
+  statusText: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
   },
   renewButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#007AFF",
-    paddingVertical: 10,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
   },
-  renewText: {
-    color: "#fff",
-    fontWeight: "600",
-    marginLeft: 6,
+  renewButtonText: {
+    color: ColorPalette.white,
+    fontWeight: Typography.fontWeight.semibold,
   },
   activityCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    backgroundColor: ColorPalette.gray[50],
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.sm,
   },
   activityTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#222",
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: ColorPalette.gray[800],
   },
   activityDate: {
-    fontSize: 13,
-    color: "#777",
+    fontSize: Typography.fontSize.xs,
+    color: ColorPalette.gray[500],
+  },
+  comingSoonContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
   },
   comingSoonText: {
-    fontSize: 14,
-    color: "#999",
-    fontStyle: "italic",
+    fontSize: Typography.fontSize.sm,
+    color: ColorPalette.gray[400],
+    fontStyle: 'italic',
+    marginTop: Spacing.sm,
+  },
+  bottomSpacer: {
+    height: Spacing.xxl,
   },
 });

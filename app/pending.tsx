@@ -6,6 +6,10 @@ import { useRouter } from "expo-router";
 import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import React, { useState } from "react";
 import { Alert, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
+import { Button } from "@/src/components/ui/Button";
+import { Card } from "@/src/components/ui/Card";
+import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from "@/src/theme";
 
 export default function PendingScreen() {
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -55,48 +59,75 @@ export default function PendingScreen() {
 
     return (
         <View style={styles.container}>
-            {/* 🕒 Illustration */}
-            <Image
-                source={{ uri: "https://cdn-icons-png.flaticon.com/512/1028/1028971.png" }}
-                style={styles.illustration}
-            />
-
-            {/* 🧾 Message */}
-            <Text style={styles.title}>{t('accountPendingApproval')}</Text>
-            <Text style={styles.subtitle}>
-                {t('pendingThankYou')}
-            </Text>
-
-            {/* 🔁 Refresh button */}
-            <TouchableOpacity
-                style={[styles.refreshButton, isRefreshing && { opacity: 0.6 }]}
-                onPress={handleCheckStatus}
-                disabled={isRefreshing}
+            <Animated.View 
+                style={styles.contentContainer}
+                entering={FadeIn.duration(600)}
             >
-                <Ionicons
-                    name={isRefreshing ? "time-outline" : "refresh-outline"}
-                    size={20}
-                    color="#fff"
-                />
-                <Text style={styles.refreshText}>
-                    {isRefreshing ? t('checking') : t('checkStatus')}
-                </Text>
-            </TouchableOpacity>
-
-            {/* 📞 Contact Support */}
-            <View style={styles.supportContainer}>
-                <Text style={styles.supportText}>{t('needHelp')}</Text>
-                <TouchableOpacity
-                    style={styles.whatsappButton}
-                    onPress={() =>
-                        // Replace number with your WhatsApp contact
-                        Linking.openURL("https://wa.me/60123456789?text=" + encodeURIComponent(t('whatsappText')))
-                    }
+                <Animated.View 
+                    style={styles.iconContainer}
+                    entering={FadeInUp.duration(500).delay(100)}
                 >
-                    <Ionicons name="logo-whatsapp" size={18} color="#fff" />
-                    <Text style={styles.whatsappText}>{t('contactAdmin')}</Text>
-                </TouchableOpacity>
-            </View>
+                    <View style={styles.iconCircle}>
+                        <Ionicons name="time" size={48} color={ColorPalette.warning[500]} />
+                    </View>
+                </Animated.View>
+
+                <Animated.View entering={FadeInUp.duration(500).delay(200)}>
+                    <Text style={styles.title}>{t('accountPendingApproval')}</Text>
+                </Animated.View>
+
+                <Animated.View entering={FadeInUp.duration(500).delay(300)}>
+                    <Text style={styles.subtitle}>
+                        {t('pendingThankYou')}
+                    </Text>
+                </Animated.View>
+
+                <Animated.View entering={FadeInUp.duration(500).delay(400)}>
+                    <Card variant="outlined" padding="lg" style={styles.infoCard}>
+                        <View style={styles.infoRow}>
+                            <Ionicons name="checkmark-circle" size={20} color={ColorPalette.success[500]} />
+                            <Text style={styles.infoText}>Registration submitted successfully</Text>
+                        </View>
+                        <View style={styles.infoRow}>
+                            <Ionicons name="people" size={20} color={ColorPalette.info[500]} />
+                            <Text style={styles.infoText}>Waiting for admin approval</Text>
+                        </View>
+                        <View style={styles.infoRow}>
+                            <Ionicons name="notifications" size={20} color={ColorPalette.warning[500]} />
+                            <Text style={styles.infoText}>You'll be notified once approved</Text>
+                        </View>
+                    </Card>
+                </Animated.View>
+
+                <Animated.View entering={FadeInUp.duration(500).delay(500)}>
+                    <Button 
+                        variant="primary" 
+                        size="lg" 
+                        fullWidth 
+                        onPress={handleCheckStatus}
+                        loading={isRefreshing}
+                        style={styles.checkButton}
+                    >
+                        <Ionicons name="refresh" size={20} color={ColorPalette.white} />
+                        {isRefreshing ? t('checking') : t('checkStatus')}
+                    </Button>
+                </Animated.View>
+
+                <Animated.View entering={FadeInUp.duration(500).delay(600)}>
+                    <View style={styles.supportContainer}>
+                        <Text style={styles.supportText}>{t('needHelp')}</Text>
+                        <TouchableOpacity
+                            style={styles.whatsappButton}
+                            onPress={() =>
+                                Linking.openURL("https://wa.me/60123456789?text=" + encodeURIComponent(t('whatsappText')))
+                            }
+                        >
+                            <Ionicons name="logo-whatsapp" size={18} color={ColorPalette.white} />
+                            <Text style={styles.whatsappButtonText}>{t('contactAdmin')}</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+            </Animated.View>
         </View>
     );
 }
@@ -104,63 +135,81 @@ export default function PendingScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F8F9FA",
+        backgroundColor: ColorPalette.gray[50],
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: 24,
+        paddingHorizontal: Spacing.lg,
     },
-    illustration: {
-        width: 120,
-        height: 120,
-        marginBottom: 24,
+    contentContainer: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    iconContainer: {
+        marginBottom: Spacing.xl,
+    },
+    iconCircle: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: ColorPalette.warning[50],
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...Shadow.lg,
     },
     title: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#222",
-        marginBottom: 10,
+        fontSize: Typography.fontSize.xl,
+        fontWeight: Typography.fontWeight.bold,
+        color: ColorPalette.gray[900],
+        marginBottom: Spacing.sm,
         textAlign: "center",
     },
     subtitle: {
-        fontSize: 14,
-        color: "#555",
+        fontSize: Typography.fontSize.base,
+        color: ColorPalette.gray[500],
         textAlign: "center",
-        lineHeight: 20,
-        marginBottom: 30,
+        lineHeight: 22,
+        marginBottom: Spacing.xl,
     },
-    refreshButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#007AFF",
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 10,
+    infoCard: {
+        width: '100%',
+        marginBottom: Spacing.xl,
     },
-    refreshText: {
-        color: "#fff",
-        fontWeight: "600",
-        marginLeft: 8,
+    infoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: Spacing.md,
+        gap: Spacing.sm,
+    },
+    infoText: {
+        flex: 1,
+        fontSize: Typography.fontSize.sm,
+        color: ColorPalette.gray[700],
+    },
+    checkButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
     },
     supportContainer: {
-        marginTop: 40,
+        marginTop: Spacing.xl,
         alignItems: "center",
     },
     supportText: {
-        color: "#666",
-        fontSize: 13,
-        marginBottom: 8,
+        color: ColorPalette.gray[500],
+        fontSize: Typography.fontSize.sm,
+        marginBottom: Spacing.sm,
     },
     whatsappButton: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#25D366",
-        paddingVertical: 10,
-        paddingHorizontal: 18,
-        borderRadius: 8,
+        backgroundColor: ColorPalette.success[500],
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.lg,
+        borderRadius: BorderRadius.lg,
+        gap: Spacing.xs,
     },
-    whatsappText: {
-        color: "#fff",
-        fontWeight: "600",
-        marginLeft: 6,
+    whatsappButtonText: {
+        color: ColorPalette.white,
+        fontWeight: Typography.fontWeight.semibold,
     },
 });

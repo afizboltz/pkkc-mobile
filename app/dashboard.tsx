@@ -1,4 +1,3 @@
-import { primaryColor } from '@/src/constants/Colors';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useTranslation } from '@/src/i18n';
 import { logoutUser } from '@/src/services/auth';
@@ -7,7 +6,55 @@ import { printLog } from '@/src/utils/log';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useNavigation } from 'expo-router';
 import React from 'react';
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from '@/src/theme';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BUTTON_WIDTH = (SCREEN_WIDTH - Spacing.md * 2 - Spacing.sm) / 2;
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
+interface MenuItemProps {
+    title: string;
+    icon: string;
+    color?: string;
+    onPress: () => void;
+    delay?: number;
+}
+
+const MenuCard: React.FC<MenuItemProps> = ({ title, icon, color = ColorPalette.primary[500], onPress, delay = 0 }) => {
+    const scale = useSharedValue(1);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
+
+    const handlePressIn = () => {
+        scale.value = withSpring(0.95);
+    };
+
+    const handlePressOut = () => {
+        scale.value = withSpring(1);
+    };
+
+    return (
+        <Animated.View entering={FadeInUp.duration(400).delay(delay).springify()} style={animatedStyle}>
+            <AnimatedTouchableOpacity 
+                style={styles.menuItem} 
+                onPress={onPress}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                activeOpacity={1}
+            >
+                <View style={[styles.menuIconContainer, { backgroundColor: `${color}15` }]}>
+                    <MaterialIcons name={icon as any} size={24} color={color} />
+                </View>
+                <Text style={styles.menuLabel} numberOfLines={2}>{title}</Text>
+            </AnimatedTouchableOpacity>
+        </Animated.View>
+    );
+};
 
 export default function DashboardScreen() {
     const { userProfile } = useAuth();
@@ -19,7 +66,7 @@ export default function DashboardScreen() {
             await logoutUser();
             navigation.reset({
                 index: 0,
-                routes: [{ name: 'login' }], // or 'login'
+                routes: [{ name: 'login' }],
             });
         } catch (e: any) {
             Alert.alert(t('signOutFailed'), e?.message || t('pleaseTryAgain'));
@@ -28,9 +75,36 @@ export default function DashboardScreen() {
 
     const renewStatus = getRenewalStatusFromProfile(userProfile);
     printLog('renewStatus', renewStatus);
+
     return (
-        <View style={styles.container}>
-            <View style={styles.switcherContainer}>
+        <ScrollView 
+            style={styles.container} 
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+        >
+            <Animated.View 
+                style={styles.header}
+                entering={FadeInDown.duration(500).springify()}
+            >
+                <View style={styles.headerContent}>
+                    <View style={styles.headerTextContainer}>
+                        <Text style={styles.greeting}>{t('hi')},</Text>
+                        <Text style={styles.userName} numberOfLines={1}>{userProfile?.fullName}</Text>
+                        <Text style={styles.associationName} numberOfLines={1}>{t('associationName')}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('profile' as never)}>
+                        <Image
+                            source={require('../src/assets/images/placeholder/userDefault.png')}
+                            style={styles.avatar}
+                        />
+                    </TouchableOpacity>
+                </View>
+            </Animated.View>
+
+            <Animated.View 
+                style={styles.switcherContainer}
+                entering={FadeInDown.duration(400).delay(100)}
+            >
                 <TouchableOpacity
                     onPress={() => setLocale('ms')}
                     style={[styles.switchBtn, locale === 'ms' && styles.switchBtnActive]}
@@ -44,195 +118,224 @@ export default function DashboardScreen() {
                     <Text style={[styles.switchBtnText, locale === 'en' && styles.switchBtnTextActive]}>EN</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleSignOut} style={styles.iconBtn}>
-                    <MaterialIcons name="logout" size={22} color="#111827" />
+                    <MaterialIcons name="logout" size={18} color={ColorPalette.gray[600]} />
                 </TouchableOpacity>
-            </View>
-            {/* Profile Section */}
-            <View style={styles.profileCard}>
-                <Image
-                    source={require('../src/assets/images/placeholder/userDefault.png')}
-                    style={styles.avatar}
-                />
-                <View style={styles.profileInfo}>
-                    <Text style={styles.profileName}>{t('hi')}, {userProfile?.fullName}</Text>
-                    <Text style={styles.profileSub}>{t('associationName')}</Text>
-                </View>
-            </View>
+            </Animated.View>
 
-            {/* Menu Section */}
+            <Animated.View entering={FadeInUp.duration(500).delay(200)}>
+                <Text style={styles.sectionTitle}>Menu</Text>
+            </Animated.View>
+
             <View style={styles.menuGrid}>
-                <TouchableOpacity style={styles.menuItem} onPress={() => {
-                    navigation.navigate('announcement')
-                }}>
-                    <Text style={styles.menuLabel}>Announcements</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem} onPress={() => {
-                    navigation.navigate('organisation')
-                }}>
-                    <Text style={styles.menuLabel}>Organisation</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem} onPress={() => {
-                    navigation.navigate('directory' as never)
-                }}>
-                    <Text style={styles.menuLabel}>Directory</Text>
-                </TouchableOpacity>
-
-                {/* <TouchableOpacity style={styles.menuItem} onPress={() => {
-                    // navigation.navigate('events')
-                    Alert.alert('Coming Soon')
-                }}>
-                    <Text style={styles.menuLabel}>Events</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.menuItem} onPress={() => {
-                    navigation.navigate('profile')
-                }}>
-                    <Text style={styles.menuLabel}>Profile</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.menuItem} onPress={() => {
-                    navigation.navigate('marketplace')
-                    // Alert.alert('Coming Soon');
-                }}>
-                    <Text style={styles.menuLabel}>Marketplace</Text>
-                </TouchableOpacity> */}
-
-                <TouchableOpacity style={styles.menuItem} onPress={() => {
-                    // if (renewStatus === 'pending') {
-                    //     Alert.alert(t('renewalStatus'), t('membershipPendingText'));
-                    //     return;
-                    // }
-
-                    // if (renewStatus === 'completed') {
-                    //     Alert.alert(t('renewalStatus'), t('membershipActiveText'));
-                    //     return;
-                    // }
-
-                    navigation.navigate('renewMembership' as never)
-
-                }}>
-                    <Text style={styles.menuLabel}>{t('renewMembership')}</Text>
-                </TouchableOpacity>
-
+                <MenuCard 
+                    title="Announcements" 
+                    icon="campaign" 
+                    color={ColorPalette.info[500]}
+                    onPress={() => navigation.navigate('announcement')}
+                    delay={300}
+                />
+                <MenuCard 
+                    title="Organisation" 
+                    icon="account-balance" 
+                    color={ColorPalette.primary[500]}
+                    onPress={() => navigation.navigate('organisation')}
+                    delay={400}
+                />
+                <MenuCard 
+                    title="Directory" 
+                    icon="contacts" 
+                    color={ColorPalette.tertiary[500]}
+                    onPress={() => navigation.navigate('directory' as never)}
+                    delay={500}
+                />
+                <MenuCard 
+                    title={t('renewMembership')} 
+                    icon="autorenew" 
+                    color={ColorPalette.success[500]}
+                    onPress={() => navigation.navigate('renewMembership' as never)}
+                    delay={600}
+                />
             </View>
+
             {userProfile?.role === 'admin' && (
-                <View>
-                    <Text style={{ fontSize: 16, fontWeight: 'bold', marginVertical: 10, marginTop: 20 }}>{t('adminPanel')}</Text>
-                    <View style={{ ...styles.menuGrid, marginTop: 10 }}>
-                        <TouchableOpacity style={styles.menuItem} onPress={() => {
-                            navigation.navigate('approveRenew')
-                        }}>
-                            <Text style={styles.menuLabel}>{t('approveRenew')}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.menuItem} onPress={() => {
-                            navigation.navigate('approveNewUser' as any)
-                        }}>
-                            <Text style={styles.menuLabel}>{t('approveNewUser')}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.menuItem} onPress={() => {
-                            navigation.navigate('renewUserList' as any)
-                        }}>
-                            <Text style={styles.menuLabel}>{t('renewUserList')}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.menuItem} onPress={() => {
-                            navigation.navigate('userList' as any)
-                        }}>
-                            <Text style={styles.menuLabel}>{t('userList')}</Text>
-                        </TouchableOpacity>
+                <Animated.View entering={FadeInUp.duration(500).delay(700)}>
+                    <View style={styles.adminSection}>
+                        <View style={styles.adminHeader}>
+                            <MaterialIcons name="admin-panel-settings" size={20} color={ColorPalette.primary[500]} />
+                            <Text style={styles.adminTitle}>{t('adminPanel')}</Text>
+                        </View>
+                        <View style={styles.menuGrid}>
+                            <MenuCard 
+                                title={t('approveRenew')} 
+                                icon="fact-check" 
+                                color={ColorPalette.warning[500]}
+                                onPress={() => navigation.navigate('approveRenew')}
+                                delay={800}
+                            />
+                            <MenuCard 
+                                title={t('approveNewUser')} 
+                                icon="person-add" 
+                                color={ColorPalette.info[500]}
+                                onPress={() => navigation.navigate('approveNewUser' as any)}
+                                delay={900}
+                            />
+                            <MenuCard 
+                                title={t('renewUserList')} 
+                                icon="assignment" 
+                                color={ColorPalette.success[500]}
+                                onPress={() => navigation.navigate('renewUserList' as any)}
+                                delay={1000}
+                            />
+                            <MenuCard 
+                                title={t('userList')} 
+                                icon="people" 
+                                color={ColorPalette.primary[500]}
+                                onPress={() => navigation.navigate('userList' as any)}
+                                delay={1100}
+                            />
+                        </View>
                     </View>
-                </View>
+                </Animated.View>
             )}
-        </View>
+            
+            <View style={styles.bottomSpacer} />
+        </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F3F4F6',
-        padding: 16,
+        backgroundColor: ColorPalette.gray[50],
     },
-    profileCard: {
+    scrollContent: {
+        padding: Spacing.md,
+    },
+    header: {
+        backgroundColor: ColorPalette.primary[500],
+        borderRadius: BorderRadius.xl,
+        padding: Spacing.md,
+        marginBottom: Spacing.md,
+        ...Shadow.md,
+    },
+    headerContent: {
         flexDirection: 'row',
-        backgroundColor: '#FFFFFF',
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 20,
+        justifyContent: 'space-between',
         alignItems: 'center',
-        elevation: 2,
+    },
+    headerTextContainer: {
+        flex: 1,
+        marginRight: Spacing.sm,
+    },
+    greeting: {
+        fontSize: Typography.fontSize.sm,
+        color: ColorPalette.white,
+        opacity: 0.9,
+    },
+    userName: {
+        fontSize: Typography.fontSize.lg,
+        fontWeight: Typography.fontWeight.bold,
+        color: ColorPalette.white,
+    },
+    associationName: {
+        fontSize: Typography.fontSize.xs,
+        color: ColorPalette.white,
+        opacity: 0.8,
+    },
+    profileButton: {
+        width: 44,
+        height: 44,
+        borderRadius: BorderRadius.full,
+        backgroundColor: ColorPalette.white,
+        padding: 2,
+        ...Shadow.sm,
     },
     avatar: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        width: '100%',
+        height: '100%',
+        borderRadius: BorderRadius.full,
         resizeMode: 'cover',
-    },
-    profileInfo: {
-        marginLeft: 12,
-    },
-    profileName: {
-        fontSize: 18,
-        fontWeight: '600',
-    },
-    profileSub: {
-        fontSize: 13,
-        color: '#6B7280',
-        marginTop: 2,
-    },
-    menuGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-        justifyContent: 'space-between',
-    },
-    menuItem: {
-        width: '48%',
-        backgroundColor: '#FFFFFF',
-        paddingVertical: 20,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        elevation: 1,
-    },
-    menuLabel: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#374151',
-    },
-    logoutContainer: {
-        backgroundColor: primaryColor,
-        paddingVertical: 20,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 'auto'
     },
     switcherContainer: {
         flexDirection: 'row',
         justifyContent: 'flex-end',
-        gap: 8,
-        marginBottom: 12,
+        gap: Spacing.xs,
+        marginBottom: Spacing.md,
     },
     switchBtn: {
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 16,
-        backgroundColor: '#E5E7EB',
+        paddingVertical: 4,
+        paddingHorizontal: Spacing.sm,
+        borderRadius: BorderRadius.full,
+        backgroundColor: ColorPalette.gray[200],
     },
     switchBtnActive: {
-        backgroundColor: '#111827',
+        backgroundColor: ColorPalette.primary[500],
     },
     switchBtnText: {
-        color: '#111827',
-        fontWeight: '600',
+        fontSize: Typography.fontSize.xs,
+        fontWeight: Typography.fontWeight.medium,
+        color: ColorPalette.gray[600],
     },
     switchBtnTextActive: {
-        color: 'white',
+        color: ColorPalette.white,
     },
     iconBtn: {
-        paddingVertical: 6,
-        paddingHorizontal: 8,
-        borderRadius: 16,
-        backgroundColor: '#E5E7EB',
-    }
+        paddingVertical: 4,
+        paddingHorizontal: Spacing.xs,
+        borderRadius: BorderRadius.full,
+        backgroundColor: ColorPalette.gray[200],
+    },
+    sectionTitle: {
+        fontSize: Typography.fontSize.base,
+        fontWeight: Typography.fontWeight.semibold,
+        color: ColorPalette.gray[800],
+        marginBottom: Spacing.md,
+    },
+    menuGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        gap: Spacing.sm,
+    },
+    menuItem: {
+        width: BUTTON_WIDTH,
+        backgroundColor: ColorPalette.white,
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.sm,
+        borderRadius: BorderRadius.lg,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...Shadow.sm,
+    },
+    menuIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: BorderRadius.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.xs,
+    },
+    menuLabel: {
+        fontSize: Typography.fontSize.xs,
+        fontWeight: Typography.fontWeight.medium,
+        color: ColorPalette.gray[700],
+        textAlign: 'center',
+    },
+    adminSection: {
+        marginTop: Spacing.lg,
+    },
+    adminHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+        marginBottom: Spacing.md,
+    },
+    adminTitle: {
+        fontSize: Typography.fontSize.base,
+        fontWeight: Typography.fontWeight.semibold,
+        color: ColorPalette.gray[800],
+    },
+    bottomSpacer: {
+        height: Spacing.xl,
+    },
 });

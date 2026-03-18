@@ -1,11 +1,14 @@
-import { primaryColor } from '@/src/constants/Colors';
 import { useTranslation } from '@/src/i18n';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useNavigation } from 'expo-router';
 import React from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { Card } from '@/src/components/ui/Card';
+import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from '@/src/theme';
 
-// Boilerplate data structures - you can fill these with actual data later
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = (SCREEN_WIDTH - Spacing.sm * 2 - Spacing.sm) / 2;
+
 interface ComplaintCategory {
     id: string;
     title: string;
@@ -23,377 +26,156 @@ interface EmergencyContact {
     isEmergency: boolean;
 }
 
-// BOILERPLATE DATA - Replace with actual data
 const complaintCategories: ComplaintCategory[] = [
-    {
-        id: '1',
-        title: 'Aduan Kemudahan',
-        description: 'Masalah dengan kemudahan bangunan atau kawasan',
-        link: 'https://example.com/complaint/facilities',
-        incharge: 'Jabatan Kemudahan'
-    },
-    {
-        id: '2',
-        title: 'Aduan Kebersihan',
-        description: 'Isu berkaitan kebersihan kawasan',
-        link: 'https://example.com/complaint/cleanliness',
-        incharge: 'Jabatan Kebersihan'
-    },
-    {
-        id: '3',
-        title: 'Aduan Keselamatan',
-        description: 'Isu berkaitan keselamatan dan sekuriti',
-        link: 'https://example.com/complaint/security',
-        incharge: 'Jabatan Keselamatan'
-    },
-    {
-        id: '4',
-        title: 'Aduan Lain-lain',
-        description: 'Aduan umum atau kategori lain',
-        link: 'https://example.com/complaint/general',
-        incharge: 'Pentadbiran'
-    }
+    { id: '1', title: 'Aduan Kemudah', description: 'Masalah dengan kemudahan', link: 'https://example.com/complaint/facilities', incharge: 'Jabatan Kemudahan' },
+    { id: '2', title: 'Aduan Kebersihan', description: 'Isu kebersihan kawasan', link: 'https://example.com/complaint/cleanliness', incharge: 'Jabatan Kebersihan' },
+    { id: '3', title: 'Aduan Keselamatan', description: 'Isu keselamatan', link: 'https://example.com/complaint/security', incharge: 'Jabatan Keselamatan' },
+    { id: '4', title: 'Aduan Lain-lain', description: 'Aduan umum', link: 'https://example.com/complaint/general', incharge: 'Pentadbiran' }
 ];
 
 const emergencyContacts: EmergencyContact[] = [
-    {
-        id: '1',
-        name: 'Pejabat Urusan PKKC',
-        department: 'Pentadbiran',
-        phone: '03-12345678',
-        email: 'info@pkkc.org',
-        isEmergency: false
-    },
-    {
-        id: '2',
-        name: 'Keselamatan (Security)',
-        department: 'Keselamatan',
-        phone: '019-8765432',
-        isEmergency: true
-    },
-    {
-        id: '3',
-        name: 'Bomb dan Penyelamat',
-        department: 'Kecemasan',
-        phone: '999',
-        isEmergency: true
-    },
-    {
-        id: '4',
-        name: 'Polis',
-        department: 'Kecemasan',
-        phone: '999',
-        isEmergency: true
-    },
-    {
-        id: '5',
-        name: 'Ambulan',
-        department: 'Kecemasan',
-        phone: '999',
-        isEmergency: true
-    }
+    { id: '1', name: 'Pejabat PKKC', department: 'Pentadbiran', phone: '03-12345678', email: 'info@pkkc.org', isEmergency: false },
+    { id: '2', name: 'Keselamatan', department: 'Keselamatan', phone: '019-8765432', isEmergency: true },
+    { id: '3', name: 'Bomb & Penyelamat', department: 'Kecemasan', phone: '999', isEmergency: true },
+    { id: '4', name: 'Polis', department: 'Kecemasan', phone: '999', isEmergency: true },
+    { id: '5', name: 'Ambulan', department: 'Kecemasan', phone: '999', isEmergency: true }
 ];
 
 export default function DirectoryScreen() {
-    const navigation = useNavigation();
     const { t } = useTranslation();
 
     const handleComplaintPress = (complaint: ComplaintCategory) => {
-        Alert.alert(
-            `Buat Aduan: ${complaint.title}`,
-            `Aduan anda akan dihantar kepada ${complaint.incharge}\n\nSistem akan membuka pautan aduan dalam pelayar.`,
-            [
-                {
-                    text: 'Batal',
-                    style: 'cancel'
-                },
-                {
-                    text: 'Buka Aduan',
-                    onPress: () => {
-                        Linking.openURL(complaint.link).catch(() => {
-                            Alert.alert('Ralat', 'Tidak dapat membuka pautan aduan. Sila cuba lagi.');
-                        });
-                    }
-                }
-            ]
-        );
+        Alert.alert(`Buat Aduan: ${complaint.title}`, `Aduan akan dihantar kepada ${complaint.incharge}`, [
+            { text: 'Batal', style: 'cancel' },
+            { text: 'Buka', onPress: () => Linking.openURL(complaint.link).catch(() => Alert.alert('Ralat', 'Tidak dapat membuka pautan.')) }
+        ]);
     };
 
     const handlePhoneCall = (phone: string) => {
-        Alert.alert(
-            'Panggilan Telefon',
-            `Anda akan membuat panggilan ke ${phone}`,
-            [
-                {
-                    text: 'Batal',
-                    style: 'cancel'
-                },
-                {
-                    text: 'Panggil',
-                    onPress: () => {
-                        Linking.openURL(`tel:${phone}`).catch(() => {
-                            Alert.alert('Ralat', 'Tidak dapat membuat panggilan. Sila cuba lagi.');
-                        });
-                    }
-                }
-            ]
-        );
+        Alert.alert('Panggilan Telefon', `Anda akan memanggil ${phone}`, [
+            { text: 'Batal', style: 'cancel' },
+            { text: 'Panggil', onPress: () => Linking.openURL(`tel:${phone}`).catch(() => Alert.alert('Ralat', 'Tidak dapat membuat panggilan.')) }
+        ]);
     };
 
     const handleEmailPress = (email: string) => {
-        Linking.openURL(`mailto:${email}`).catch(() => {
-            Alert.alert('Ralat', 'Tidak dapat membuka aplikasi emel. Sila cuba lagi.');
-        });
+        Linking.openURL(`mailto:${email}`).catch(() => Alert.alert('Ralat', 'Tidak dapat membuka emel.'));
     };
 
     return (
         <View style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Header */}
-                <View style={styles.header}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                <Animated.View style={styles.header} entering={FadeInDown.duration(500).springify()}>
+                    <View style={styles.headerIconContainer}>
+                        <MaterialIcons name="contact-phone" size={32} color={ColorPalette.white} />
+                    </View>
                     <Text style={styles.headerTitle}>Direktori</Text>
                     <Text style={styles.headerSubtitle}>Aduan & Kecemasan</Text>
-                </View>
+                </Animated.View>
 
-                {/* Complaint Section */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <MaterialIcons name="report-problem" size={24} color={primaryColor} />
-                        <Text style={styles.sectionTitle}>Buat Aduan</Text>
-                    </View>
-                    <Text style={styles.sectionDescription}>
-                        Pilih kategori aduan untuk dihantar kepada pihak berkenaan
-                    </Text>
-
-                    <View style={styles.complaintGrid}>
-                        {complaintCategories.map((complaint) => (
-                            <TouchableOpacity
-                                key={complaint.id}
-                                style={styles.complaintCard}
-                                onPress={() => handleComplaintPress(complaint)}
-                            >
-                                <MaterialIcons name="description" size={32} color={primaryColor} />
-                                <Text style={styles.complaintTitle}>{complaint.title}</Text>
-                                <Text style={styles.complaintDescription}>{complaint.description}</Text>
-                                <Text style={styles.complaintIncharge}>PIC: {complaint.incharge}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-
-                {/* Emergency Contacts Section */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <MaterialIcons name="phone-in-talk" size={24} color="#DC2626" />
-                        <Text style={styles.sectionTitle}>Hubungan Kecemasan</Text>
-                    </View>
-                    <Text style={styles.sectionDescription}>
-                        Hubungi nombor kecemasan untuk bantuan segera
-                    </Text>
-
-                    <View style={styles.contactsList}>
-                        {emergencyContacts.map((contact) => (
-                            <View key={contact.id} style={[
-                                styles.contactCard,
-                                contact.isEmergency && styles.emergencyCard
-                            ]}>
-                                <View style={styles.contactInfo}>
-                                    <View style={styles.contactHeader}>
-                                        <Text style={[
-                                            styles.contactName,
-                                            contact.isEmergency && styles.emergencyText
-                                        ]}>
-                                            {contact.name}
-                                        </Text>
-                                        {contact.isEmergency && (
-                                            <View style={styles.emergencyBadge}>
-                                                <Text style={styles.emergencyBadgeText}>KECEMASAN</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                    <Text style={styles.contactDepartment}>{contact.department}</Text>
-                                    <TouchableOpacity
-                                        style={styles.phoneButton}
-                                        onPress={() => handlePhoneCall(contact.phone)}
-                                    >
-                                        <MaterialIcons name="call" size={16} color={primaryColor} />
-                                        <Text style={styles.phoneNumber}>{contact.phone}</Text>
-                                    </TouchableOpacity>
-                                    {contact.email && (
-                                        <TouchableOpacity
-                                            style={styles.emailButton}
-                                            onPress={() => handleEmailPress(contact.email!)}
-                                        >
-                                            <MaterialIcons name="email" size={16} color={primaryColor} />
-                                            <Text style={styles.emailText}>{contact.email}</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
+                <Animated.View style={styles.section} entering={FadeInUp.duration(500).delay(100).springify()}>
+                    <Card variant="elevated" padding="md">
+                        <View style={styles.sectionHeader}>
+                            <View style={[styles.sectionIcon, { backgroundColor: `${ColorPalette.warning[500]}15` }]}>
+                                <MaterialIcons name="report-problem" size={20} color={ColorPalette.warning[500]} />
                             </View>
-                        ))}
-                    </View>
-                </View>
+                            <View style={styles.sectionTextContainer}>
+                                <Text style={styles.sectionTitle}>Buat Aduan</Text>
+                                <Text style={styles.sectionDescription} numberOfLines={2}>Pilih kategori aduan</Text>
+                            </View>
+                        </View>
+                        <View style={styles.complaintGrid}>
+                            {complaintCategories.map((complaint, index) => (
+                                <Animated.View key={complaint.id} entering={FadeInUp.duration(400).delay(200 + index * 50)}>
+                                    <TouchableOpacity style={styles.complaintCard} onPress={() => handleComplaintPress(complaint)} activeOpacity={0.7}>
+                                        <View style={styles.complaintIconContainer}>
+                                            <MaterialIcons name="description" size={24} color={ColorPalette.primary[500]} />
+                                        </View>
+                                        <Text style={styles.complaintTitle} numberOfLines={1}>{complaint.title}</Text>
+                                        <Text style={styles.complaintDescription} numberOfLines={2}>{complaint.description}</Text>
+                                        <Text style={styles.complaintIncharge} numberOfLines={1}>PIC: {complaint.incharge}</Text>
+                                    </TouchableOpacity>
+                                </Animated.View>
+                            ))}
+                        </View>
+                    </Card>
+                </Animated.View>
+
+                <Animated.View style={styles.section} entering={FadeInUp.duration(500).delay(300).springify()}>
+                    <Card variant="elevated" padding="md">
+                        <View style={styles.sectionHeader}>
+                            <View style={[styles.sectionIcon, { backgroundColor: `${ColorPalette.error[500]}15` }]}>
+                                <MaterialIcons name="phone-in-talk" size={20} color={ColorPalette.error[500]} />
+                            </View>
+                            <View style={styles.sectionTextContainer}>
+                                <Text style={styles.sectionTitle}>Hubungan Kecemasan</Text>
+                                <Text style={styles.sectionDescription} numberOfLines={2}>Nombor kecemasan</Text>
+                            </View>
+                        </View>
+                        <View style={styles.contactsList}>
+                            {emergencyContacts.map((contact, index) => (
+                                <Animated.View key={contact.id} entering={FadeInUp.duration(400).delay(400 + index * 50)}>
+                                    <View style={[styles.contactCard, contact.isEmergency && styles.emergencyCard]}>
+                                        <View style={styles.contactInfo}>
+                                            <View style={styles.contactHeader}>
+                                                <Text style={[styles.contactName, contact.isEmergency && styles.emergencyText]} numberOfLines={1}>{contact.name}</Text>
+                                                {contact.isEmergency && <View style={styles.emergencyBadge}><Text style={styles.emergencyBadgeText}>KECEMASAN</Text></View>}
+                                            </View>
+                                            <Text style={styles.contactDepartment} numberOfLines={1}>{contact.department}</Text>
+                                            <View style={styles.buttonRow}>
+                                                <TouchableOpacity style={[styles.phoneButton, contact.isEmergency && styles.emergencyPhoneButton]} onPress={() => handlePhoneCall(contact.phone)}>
+                                                    <MaterialIcons name="call" size={14} color={contact.isEmergency ? ColorPalette.white : ColorPalette.primary[500]} />
+                                                    <Text style={[styles.phoneNumber, contact.isEmergency && styles.emergencyPhoneText]}>{contact.phone}</Text>
+                                                </TouchableOpacity>
+                                                {contact.email && <TouchableOpacity style={styles.emailButton} onPress={() => handleEmailPress(contact.email!)}><MaterialIcons name="email" size={14} color={ColorPalette.primary[500]} /></TouchableOpacity>}
+                                            </View>
+                                        </View>
+                                    </View>
+                                </Animated.View>
+                            ))}
+                        </View>
+                    </Card>
+                </Animated.View>
+                <View style={styles.bottomSpacer} />
             </ScrollView>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#F3F4F6',
-    },
-    header: {
-        backgroundColor: primaryColor,
-        padding: 20,
-        paddingTop: 60,
-        alignItems: 'center',
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: 'white',
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.8)',
-        marginTop: 4,
-    },
-    section: {
-        margin: 16,
-        marginBottom: 8,
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#111827',
-        marginLeft: 8,
-    },
-    sectionDescription: {
-        fontSize: 14,
-        color: '#6B7280',
-        marginBottom: 16,
-    },
-    complaintGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-    },
-    complaintCard: {
-        width: '48%',
-        backgroundColor: 'white',
-        padding: 16,
-        borderRadius: 12,
-        alignItems: 'center',
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-    },
-    complaintTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#111827',
-        marginTop: 8,
-        textAlign: 'center',
-    },
-    complaintDescription: {
-        fontSize: 12,
-        color: '#6B7280',
-        marginTop: 4,
-        textAlign: 'center',
-    },
-    complaintIncharge: {
-        fontSize: 11,
-        color: primaryColor,
-        marginTop: 8,
-        fontWeight: '500',
-    },
-    contactsList: {
-        gap: 12,
-    },
-    contactCard: {
-        backgroundColor: 'white',
-        padding: 16,
-        borderRadius: 12,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-    },
-    emergencyCard: {
-        borderWidth: 2,
-        borderColor: '#DC2626',
-        backgroundColor: '#FEF2F2',
-    },
-    contactInfo: {
-        flex: 1,
-    },
-    contactHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    contactName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#111827',
-    },
-    emergencyText: {
-        color: '#DC2626',
-    },
-    emergencyBadge: {
-        backgroundColor: '#DC2626',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    emergencyBadgeText: {
-        color: 'white',
-        fontSize: 10,
-        fontWeight: '600',
-    },
-    contactDepartment: {
-        fontSize: 14,
-        color: '#6B7280',
-        marginTop: 2,
-    },
-    phoneButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 8,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        backgroundColor: '#F3F4F6',
-        borderRadius: 8,
-        alignSelf: 'flex-start',
-    },
-    phoneNumber: {
-        fontSize: 14,
-        color: primaryColor,
-        fontWeight: '500',
-        marginLeft: 4,
-    },
-    emailButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 6,
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        backgroundColor: '#F3F4F6',
-        borderRadius: 8,
-        alignSelf: 'flex-start',
-    },
-    emailText: {
-        fontSize: 13,
-        color: primaryColor,
-        marginLeft: 4,
-    },
+    container: { flex: 1, backgroundColor: ColorPalette.gray[50] },
+    scrollContent: { flexGrow: 1 },
+    header: { backgroundColor: ColorPalette.primary[500], padding: Spacing.lg, paddingTop: Spacing.xl, alignItems: 'center' },
+    headerIconContainer: { width: 56, height: 56, borderRadius: BorderRadius.lg, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+    headerTitle: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.bold, color: ColorPalette.white },
+    headerSubtitle: { fontSize: Typography.fontSize.sm, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
+    section: { padding: Spacing.sm },
+    sectionHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: Spacing.md },
+    sectionTextContainer: { flex: 1 },
+    sectionIcon: { width: 40, height: 40, borderRadius: BorderRadius.md, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.sm },
+    sectionTitle: { fontSize: Typography.fontSize.base, fontWeight: Typography.fontWeight.semibold, color: ColorPalette.gray[900] },
+    sectionDescription: { fontSize: Typography.fontSize.xs, color: ColorPalette.gray[500] },
+    complaintGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: Spacing.sm },
+    complaintCard: { width: CARD_WIDTH, backgroundColor: ColorPalette.gray[50], padding: Spacing.sm, borderRadius: BorderRadius.md, alignItems: 'center' },
+    complaintIconContainer: { width: 44, height: 44, borderRadius: BorderRadius.md, backgroundColor: `${ColorPalette.primary[500]}10`, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+    complaintTitle: { fontSize: Typography.fontSize.xs, fontWeight: Typography.fontWeight.semibold, color: ColorPalette.gray[800], textAlign: 'center' },
+    complaintDescription: { fontSize: 10, color: ColorPalette.gray[500], marginTop: 2, textAlign: 'center' },
+    complaintIncharge: { fontSize: 10, color: ColorPalette.primary[500], marginTop: 4, fontWeight: Typography.fontWeight.medium },
+    contactsList: { gap: Spacing.sm },
+    contactCard: { backgroundColor: ColorPalette.gray[50], padding: Spacing.sm, borderRadius: BorderRadius.md },
+    emergencyCard: { borderWidth: 1.5, borderColor: ColorPalette.error[500], backgroundColor: ColorPalette.error[50] },
+    contactInfo: { flex: 1 },
+    contactHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 },
+    contactName: { fontSize: Typography.fontSize.sm, fontWeight: Typography.fontWeight.semibold, color: ColorPalette.gray[800], flex: 1 },
+    emergencyText: { color: ColorPalette.error[600] },
+    emergencyBadge: { backgroundColor: ColorPalette.error[500], paddingHorizontal: 6, paddingVertical: 2, borderRadius: BorderRadius.full },
+    emergencyBadgeText: { color: ColorPalette.white, fontSize: 8, fontWeight: Typography.fontWeight.bold },
+    contactDepartment: { fontSize: Typography.fontSize.xs, color: ColorPalette.gray[500] },
+    buttonRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: Spacing.xs },
+    phoneButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: Spacing.sm, backgroundColor: ColorPalette.gray[100], borderRadius: BorderRadius.sm },
+    emergencyPhoneButton: { backgroundColor: ColorPalette.error[500] },
+    phoneNumber: { fontSize: Typography.fontSize.xs, color: ColorPalette.primary[500], fontWeight: Typography.fontWeight.medium, marginLeft: 4 },
+    emergencyPhoneText: { color: ColorPalette.white },
+    emailButton: { padding: 6, backgroundColor: ColorPalette.gray[100], borderRadius: BorderRadius.sm },
+    bottomSpacer: { height: Spacing.xl },
 });
