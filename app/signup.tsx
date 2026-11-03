@@ -153,6 +153,9 @@ export default function SignupScreen() {
                     index: 0,
                     routes: [{ name: "pending" as never }],
                 });
+            } else if (res.status === "pending_email_confirmation") {
+                Alert.alert(t('success'), t('pleaseCheckEmailToConfirm') || 'Please check your email to confirm your account, then sign in.');
+                navigation.goBack();
             }
             setIsLoading(false);
         } catch (error: any) {

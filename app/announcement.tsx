@@ -23,12 +23,12 @@ import ParsedText from 'react-native-parsed-text';
 
 interface Announcement {
   id: string;
-  message?: string;
-  date?: string;
-  images?: string[];
-  title?: string;
-  description?: string;
-  createdAt?: { toDate: () => Date };
+  message?: string | null;
+  date?: string | null;
+  images?: string[] | null;
+  title?: string | null;
+  description?: string | null;
+  createdAt?: string | null;
 }
 
 export default function AnnouncementScreen() {
@@ -135,7 +135,7 @@ export default function AnnouncementScreen() {
 
           <View style={styles.timeContainer}>
             <ThemedText type="caption" style={styles.timeText}>
-              {item.createdAt ? dayjs(item.createdAt.toDate()).format("h:mm A") : dayjs(item.date).format("h:mm A")}
+              {item.createdAt ? dayjs(item.createdAt).format("h:mm A") : dayjs(item.date).format("h:mm A")}
             </ThemedText>
           </View>
         </Card>

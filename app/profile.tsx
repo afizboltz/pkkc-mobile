@@ -30,7 +30,7 @@ export default function ProfileScreen() {
 
   const activities: { id: string; title: string; date: string }[] = [];
 
-  const getProfilePicture = (userPic: string) => {
+  const getProfilePicture = (userPic?: string) => {
     if (userPic) {
       return { uri: userPic } as const;
     } else {

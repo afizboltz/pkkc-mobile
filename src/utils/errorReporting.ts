@@ -96,7 +96,7 @@ const submitErrorReport = async (errorReport: ErrorReportData): Promise<void> =>
   try {
     await logUserAction('error_report_submitted', { errorId: errorReport.errorId });
 
-    // The error report is already logged to Firebase via createErrorReport
+    // The error report is already logged via createErrorReport
     // Here we could add additional notification or tracking
 
     Alert.alert(

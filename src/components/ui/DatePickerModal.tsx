@@ -29,6 +29,31 @@ export default function DatePickerModal({
     if (visible) setTempDate(initialDate || new Date());
   }, [visible, initialDate]);
 
+  // Android's 'default' display is a native system dialog that manages its own
+  // show/dismiss lifecycle — it has no inline view, so wrapping it in our own
+  // Modal with separate Cancel/OK buttons leaves that Modal stuck open after the
+  // native dialog closes itself. Just mount the bare picker and react to the
+  // single onChange event it fires instead.
+  if (Platform.OS === 'android') {
+    if (!visible) return null;
+
+    return (
+      <DateTimePicker
+        value={tempDate}
+        mode={mode}
+        display="default"
+        onChange={(event, selectedDate) => {
+          if (event.type === 'set' && selectedDate) {
+            onConfirm(selectedDate);
+          } else {
+            onCancel();
+          }
+        }}
+        maximumDate={new Date()}
+      />
+    );
+  }
+
   return (
     <Modal
       transparent
@@ -43,7 +68,7 @@ export default function DatePickerModal({
             <DateTimePicker
               value={tempDate}
               mode={mode}
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              display="spinner"
               onChange={(_, selectedDate) => {
                 if (selectedDate) setTempDate(selectedDate);
               }}

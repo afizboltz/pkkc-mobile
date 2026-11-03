@@ -11,7 +11,9 @@
         "gradleCommand": ":app:assembleStgRelease"
       },
       "env": {
-        "EXPO_PUBLIC_ENV": "stg"
+        "EXPO_PUBLIC_ENV": "stg",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://gxyedsgrlacvmzvsivyi.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_4GLO_EjcJ2gEnK1cB544cA_osX0DJLI"
       }
     },
     "stg-apk": {
@@ -20,7 +22,9 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_ENV": "stg"
+        "EXPO_PUBLIC_ENV": "stg",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://gxyedsgrlacvmzvsivyi.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_4GLO_EjcJ2gEnK1cB544cA_osX0DJLI"
       }
     },
     "ppd": {

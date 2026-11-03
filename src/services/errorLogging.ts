@@ -1,37 +1,51 @@
-import { addDoc, collection, doc, getDocs, limit, orderBy, query, serverTimestamp, where } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { supabase } from '../config/supabase';
+import type { Json } from '../types/supabase';
 import { ErrorReport, LogEntry, LogLevel } from '../utils/log';
 
 class ErrorLoggingService {
-  private readonly ERROR_COLLECTION = 'error_logs';
-  private readonly REPORT_COLLECTION = 'error_reports';
+  private readonly ERROR_TABLE = 'error_logs';
+  private readonly REPORT_TABLE = 'error_reports';
 
-  // Log structured log entry to Firebase
+  // Log structured log entry to Supabase
   public logEntry = async (logEntry: LogEntry): Promise<void> => {
     try {
-      const docRef = collection(db, this.ERROR_COLLECTION);
-      await addDoc(docRef, {
-        ...logEntry,
-        timestamp: serverTimestamp(),
-        syncedAt: serverTimestamp()
+      const { error } = await supabase.from(this.ERROR_TABLE).insert({
+        timestamp: logEntry.timestamp,
+        level: logEntry.level,
+        category: logEntry.category,
+        message: logEntry.message,
+        data: logEntry.data ?? null,
+        user_id: logEntry.userId ?? null,
+        session_id: logEntry.sessionId ?? null,
+        device_info: (logEntry.deviceInfo ?? null) as Json,
+        stack_trace: logEntry.stackTrace ?? null,
       });
+      if (error) throw error;
     } catch (error) {
-      console.error('Failed to log entry to Firebase:', error);
+      console.error('Failed to log entry to Supabase:', error);
       throw error;
     }
   };
 
-  // Log error report to Firebase
+  // Log error report to Supabase
   public logErrorReport = async (errorReport: ErrorReport): Promise<void> => {
     try {
-      const docRef = collection(db, this.REPORT_COLLECTION);
-      await addDoc(docRef, {
-        ...errorReport,
-        timestamp: serverTimestamp(),
-        syncedAt: serverTimestamp()
+      const { error } = await supabase.from(this.REPORT_TABLE).insert({
+        error_id: errorReport.errorId,
+        timestamp: errorReport.timestamp,
+        error_message: errorReport.errorMessage,
+        error_stack: errorReport.errorStack ?? null,
+        user_id: errorReport.userId ?? null,
+        user_email: errorReport.userEmail ?? null,
+        action: errorReport.action,
+        context: errorReport.context ?? null,
+        device_info: errorReport.deviceInfo as unknown as Json,
+        reproduction_steps: errorReport.reproductionSteps?.join('\n') ?? null,
+        user_feedback: errorReport.userFeedback ?? null,
       });
+      if (error) throw error;
     } catch (error) {
-      console.error('Failed to log error report to Firebase:', error);
+      console.error('Failed to log error report to Supabase:', error);
       throw error;
     }
   };
@@ -39,20 +53,26 @@ class ErrorLoggingService {
   // Get recent errors for a user
   public getUserErrors = async (userId: string, limitCount: number = 20): Promise<LogEntry[]> => {
     try {
-      const q = query(
-        collection(db, this.ERROR_COLLECTION),
-        where('userId', '==', userId),
-        where('level', 'in', [LogLevel.ERROR, LogLevel.FATAL]),
-        orderBy('timestamp', 'desc'),
-        limit(limitCount)
-      );
+      const { data, error } = await supabase
+        .from(this.ERROR_TABLE)
+        .select('*')
+        .eq('user_id', userId)
+        .in('level', [LogLevel.ERROR, LogLevel.FATAL])
+        .order('timestamp', { ascending: false })
+        .limit(limitCount);
 
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id,
-        timestamp: doc.data().timestamp?.toDate()?.toISOString() || new Date().toISOString()
-      })) as unknown as LogEntry[];
+      if (error) throw error;
+      return (data ?? []).map((row) => ({
+        timestamp: row.timestamp,
+        level: row.level as LogLevel,
+        category: row.category ?? '',
+        message: row.message ?? '',
+        data: row.data,
+        userId: row.user_id ?? undefined,
+        sessionId: row.session_id ?? undefined,
+        deviceInfo: row.device_info as unknown as LogEntry['deviceInfo'],
+        stackTrace: row.stack_trace ?? undefined,
+      }));
     } catch (error) {
       console.error('Failed to get user errors:', error);
       return [];
@@ -62,18 +82,26 @@ class ErrorLoggingService {
   // Get error reports for analysis
   public getErrorReports = async (limitCount: number = 50): Promise<ErrorReport[]> => {
     try {
-      const q = query(
-        collection(db, this.REPORT_COLLECTION),
-        orderBy('timestamp', 'desc'),
-        limit(limitCount)
-      );
+      const { data, error } = await supabase
+        .from(this.REPORT_TABLE)
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(limitCount);
 
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id,
-        timestamp: doc.data().timestamp?.toDate()?.toISOString() || new Date().toISOString()
-      })) as unknown as ErrorReport[];
+      if (error) throw error;
+      return (data ?? []).map((row) => ({
+        errorId: row.error_id ?? row.id,
+        timestamp: row.timestamp,
+        errorMessage: row.error_message ?? '',
+        errorStack: row.error_stack ?? undefined,
+        userId: row.user_id ?? undefined,
+        userEmail: row.user_email ?? undefined,
+        action: row.action ?? '',
+        context: row.context,
+        deviceInfo: row.device_info as unknown as ErrorReport['deviceInfo'],
+        reproductionSteps: row.reproduction_steps ? row.reproduction_steps.split('\n') : undefined,
+        userFeedback: row.user_feedback ?? undefined,
+      }));
     } catch (error) {
       console.error('Failed to get error reports:', error);
       return [];
@@ -88,31 +116,30 @@ class ErrorLoggingService {
     recentErrors: LogEntry[];
   }> => {
     try {
-      let constraints = [
-        where('level', 'in', [LogLevel.ERROR, LogLevel.FATAL]),
-        orderBy('timestamp', 'desc'),
-        limit(100)
-      ];
+      let q = supabase
+        .from(this.ERROR_TABLE)
+        .select('*')
+        .in('level', [LogLevel.ERROR, LogLevel.FATAL])
+        .order('timestamp', { ascending: false })
+        .limit(100);
 
       if (userId) {
-        constraints.unshift(where('userId', '==', userId));
+        q = q.eq('user_id', userId);
       }
 
-      const q = query(
-        collection(db, this.ERROR_COLLECTION),
-        ...constraints
-      );
+      const { data, error } = await q;
+      if (error) throw error;
+      const errors = (data ?? []) as Array<{ level: string; category: string | null }>;
 
-      const querySnapshot = await getDocs(q);
-      const errors = querySnapshot.docs.map(doc => doc.data()) as LogEntry[];
-
-      const errorByLevel = errors.reduce((acc, error) => {
-        acc[error.level] = (acc[error.level] || 0) + 1;
+      const errorByLevel = errors.reduce((acc, row) => {
+        const level = row.level as LogLevel;
+        acc[level] = (acc[level] || 0) + 1;
         return acc;
       }, {} as Record<LogLevel, number>);
 
-      const errorByCategory = errors.reduce((acc, error) => {
-        acc[error.category] = (acc[error.category] || 0) + 1;
+      const errorByCategory = errors.reduce((acc, row) => {
+        const category = row.category ?? 'unknown';
+        acc[category] = (acc[category] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
@@ -120,7 +147,17 @@ class ErrorLoggingService {
         totalErrors: errors.length,
         errorByLevel,
         errorByCategory,
-        recentErrors: errors.slice(0, 10)
+        recentErrors: (data ?? []).slice(0, 10).map((row: any) => ({
+          timestamp: row.timestamp,
+          level: row.level as LogLevel,
+          category: row.category ?? '',
+          message: row.message ?? '',
+          data: row.data,
+          userId: row.user_id ?? undefined,
+          sessionId: row.session_id ?? undefined,
+          deviceInfo: row.device_info,
+          stackTrace: row.stack_trace ?? undefined,
+        })),
       };
     } catch (error) {
       console.error('Failed to get error stats:', error);
@@ -128,24 +165,8 @@ class ErrorLoggingService {
         totalErrors: 0,
         errorByLevel: {} as Record<LogLevel, number>,
         errorByCategory: {},
-        recentErrors: []
+        recentErrors: [],
       };
-    }
-  };
-
-  // Mark error as resolved
-  public markErrorAsResolved = async (errorId: string, resolutionNote?: string): Promise<void> => {
-    try {
-      const docRef = doc(db, this.REPORT_COLLECTION, errorId);
-      await addDoc(collection(db, 'error_resolutions'), {
-        errorId,
-        resolutionNote,
-        resolvedAt: serverTimestamp(),
-        resolvedBy: 'system' // Could be user ID in real implementation
-      });
-    } catch (error) {
-      console.error('Failed to mark error as resolved:', error);
-      throw error;
     }
   };
 }
@@ -154,7 +175,7 @@ class ErrorLoggingService {
 export const errorLoggingService = new ErrorLoggingService();
 
 // Export convenience functions
-export const logToFirebase = errorLoggingService.logEntry;
+export const logToSupabase = errorLoggingService.logEntry;
 export const logErrorReport = errorLoggingService.logErrorReport;
 export const getUserErrors = errorLoggingService.getUserErrors;
 export const getErrorReports = errorLoggingService.getErrorReports;

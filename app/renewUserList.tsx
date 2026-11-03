@@ -1,3 +1,4 @@
+import { supabase } from "@/src/config/supabase";
 import { useTranslation } from "@/src/i18n";
 import { getApprovedRenewals } from "@/src/services/renewMembership";
 import dayjs from "dayjs";
@@ -24,6 +25,15 @@ export default function RenewUserListScreen() {
     useEffect(() => {
         fetchRenewals()
     }, []);
+
+    const openPreview = async (path: string) => {
+        const { data, error } = await supabase.storage.from("receipts").createSignedUrl(path, 60 * 5);
+        if (error || !data) {
+            Alert.alert(t('error') || 'Error', error?.message || 'Failed to load attachment');
+            return;
+        }
+        setPreviewUrl(data.signedUrl);
+    };
 
     const buildApprovedHtml = (items: any[]) => {
         const rows = items.map((it, idx) => `<tr><td style="padding:8px;border:1px solid #ddd;">${idx + 1}</td><td style="padding:8px;border:1px solid #ddd;">${it.userFullName || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.userEmail || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.approvedAtMillis ? new Date(it.approvedAtMillis).toLocaleString() : "-"}</td></tr>`).join("");
@@ -99,7 +109,7 @@ export default function RenewUserListScreen() {
                         <Text>{t('submitted')}: {item.approvedAtMillis ? dayjs(item.approvedAtMillis).format('DD MMM YYYY HH:mm a') : (item.submittedAtMillis ? dayjs(item.submittedAtMillis).format('DD MMM YYYY HH:mm a') : item.submittedAt)}</Text>
 
                         {(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl) ? (
-                            <TouchableOpacity onPress={() => setPreviewUrl(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl)} style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#f1f5f9', borderRadius: 6 }}>
+                            <TouchableOpacity onPress={() => openPreview(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl)} style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#f1f5f9', borderRadius: 6 }}>
                                 <Text style={{ color: '#0f172a' }}>{t('viewAttachment')}</Text>
                             </TouchableOpacity>
                         ) : null}

@@ -1,9 +1,8 @@
-import { db } from "@/src/config/firebase";
+import { supabase } from "@/src/config/supabase";
 import { useTranslation } from "@/src/i18n";
 import { mmkvAsyncStorage } from "@/src/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import React, { useState } from "react";
 import { Alert, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
@@ -27,17 +26,19 @@ export default function PendingScreen() {
                 return;
             }
 
-            const usersRef = collection(db, "users");
-            const q = query(usersRef, where("email", "==", email), limit(1));
-            const snap = await getDocs(q);
+            const { data, error } = await supabase
+                .from("users")
+                .select("status")
+                .eq("email", email)
+                .maybeSingle();
 
-            if (snap.empty) {
+            if (error) throw error;
+
+            if (!data) {
                 Alert.alert(t('notFound'), t('registrationNotFound'));
                 return;
             }
 
-            const userDoc = snap.docs[0];
-            const data = userDoc.data() as { status?: string };
             const status = (data.status || "").toLowerCase();
 
             if (status === "active") {

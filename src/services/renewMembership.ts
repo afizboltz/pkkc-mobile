@@ -1,159 +1,143 @@
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { db } from "../config/firebase";
-import { getAllUsers } from "./users";
+import { supabase } from "../config/supabase";
+import type { RenewalRow } from "../types/models";
+import type { TablesInsert } from "../types/supabase";
+
+type RenewalJoinRow = RenewalRow & { users: { full_name: string; email: string } | null };
+
+const notFoundToError = (message: string) =>
+    message === "JSON object requested, multiple (or no) rows returned" ? "Renewal not found" : message;
+
+const mapRenewal = (r: RenewalJoinRow) => ({
+    id: r.id,
+    userId: r.user_id,
+    userFullName: r.users?.full_name || "-",
+    userEmail: r.users?.email || "-",
+    kind: r.kind,
+    amount: r.amount,
+    status: r.status,
+    paymentMethod: r.payment_method,
+    screenshotUrl: r.screenshot_url,
+    certificateUrl: r.certificate_url,
+    submittedAtMillis: new Date(r.submitted_at).getTime(),
+    submittedAt: r.submitted_at,
+    approvedAtMillis: r.approved_at ? new Date(r.approved_at).getTime() : undefined,
+});
 
 export const getPendingRenewals = async () => {
-    const users = await getAllUsers();
-    const pending: any[] = [];
-
-    for (const u of users as any[]) {
-        const raw = u?.renewals;
-        if (Array.isArray(raw)) {
-            for (const it of raw) {
-                if ((it?.status || "").toLowerCase() === "pending") {
-                    pending.push({ userFullName: u.fullName, userEmail: u.email || u.id, ...it });
-                }
-            }
-        } else if (raw && typeof raw === "object") {
-            for (const [id, value] of Object.entries(raw)) {
-                const v: any = value || {};
-                if ((v?.status || "").toLowerCase() === "pending") {
-                    pending.push({ userFullName: u.fullName, userEmail: u.email || u.id, id, ...v });
-                }
-            }
-        }
-    }
-
-    pending.sort((a: any, b: any) => {
-        const at = a.submittedAt?.seconds || a.submittedAt?.toMillis?.() || a.submittedAtMillis || 0;
-        const bt = b.submittedAt?.seconds || b.submittedAt?.toMillis?.() || b.submittedAtMillis || 0;
-        return bt - at;
-    });
-
-    return pending;
+    const { data, error } = await supabase
+        .from("renewals")
+        .select("*, users(full_name, email)")
+        .eq("status", "pending")
+        .order("submitted_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((r) => mapRenewal(r as unknown as RenewalJoinRow));
 };
 
 export const getApprovedRenewals = async () => {
-    const users = await getAllUsers();
-    const approved: any[] = [];
-
-    for (const u of users as any[]) {
-        const raw = (u as any)?.renewals;
-        if (Array.isArray(raw)) {
-            for (const it of raw) {
-                if ((it?.status || "").toLowerCase() === "approved") {
-                    approved.push({ userFullName: (u as any).fullName, userEmail: (u as any).email || (u as any).id, ...it });
-                }
-            }
-        } else if (raw && typeof raw === "object") {
-            for (const [id, value] of Object.entries(raw)) {
-                const v: any = value || {};
-                if ((v?.status || "").toLowerCase() === "approved") {
-                    approved.push({ userFullName: (u as any).fullName, userEmail: (u as any).email || (u as any).id, id, ...v });
-                }
-            }
-        }
-    }
-
-    approved.sort((a: any, b: any) => {
-        const at = a.approvedAtMillis || a.submittedAt?.seconds || a.submittedAt?.toMillis?.() || a.submittedAtMillis || 0;
-        const bt = b.approvedAtMillis || b.submittedAt?.seconds || b.submittedAt?.toMillis?.() || b.submittedAtMillis || 0;
-        return bt - at;
-    });
-
-    return approved;
+    const { data, error } = await supabase
+        .from("renewals")
+        .select("*, users(full_name, email)")
+        .eq("status", "approved")
+        .order("approved_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((r) => mapRenewal(r as unknown as RenewalJoinRow));
 };
 
-// Approve a renewal by userId and renewalId
-export const approveRenewal = async ({ userId, renewalId, remark, by }: { userId: string; renewalId: string; remark?: string; by?: string }) => {
-    const userRef = doc(db, "users", userId);
-    const snap = await getDoc(userRef);
-    if (!snap.exists()) throw new Error("User not found");
+// Approve a renewal by its own id (the users row it belongs to is read off the renewal itself).
+export const approveRenewal = async ({ renewalId, remark, by }: { renewalId: string; remark?: string; by?: string }) => {
+    const { data: renewal, error } = await supabase
+        .from("renewals")
+        .update({
+            status: "approved",
+            approved_at: new Date().toISOString(),
+            approved_remark: remark,
+            approved_by: by,
+        })
+        .eq("id", renewalId)
+        .select()
+        .single();
+    if (error) throw new Error(notFoundToError(error.message));
 
-    const data: any = snap.data() || {};
-    const renewals = data.renewals;
-
-    if (Array.isArray(renewals)) {
-        const updated = renewals.map((it: any) =>
-            it?.id === renewalId
-                ? { ...it, status: "approved", approvedAtMillis: Date.now(), ...(remark ? { approvedRemark: remark } : {}), ...(by ? { approvedBy: by } : {}) }
-                : it
-        );
-        await updateDoc(userRef, { renewals: updated });
-    } else if (renewals && typeof renewals === "object") {
-        await updateDoc(userRef, {
-            [`renewals.${renewalId}.status`]: "approved",
-            [`renewals.${renewalId}.approvedAtMillis`]: Date.now(),
-            ...(remark ? { [`renewals.${renewalId}.approvedRemark`]: remark } : {}),
-            ...(by ? { [`renewals.${renewalId}.approvedBy`]: by } : {}),
-        });
-    } else {
-        throw new Error("No renewals found for user");
-    }
-
-    // Set membership expiry to end of next year (December 31st)
     const nextYear = new Date().getFullYear() + 1;
-    const formatted = `${nextYear}-12-31`;
-    await updateDoc(userRef, { membershipExpiry: formatted });
+    const membershipExpiry = `${nextYear}-12-31`;
+    const { error: userUpdateError } = await supabase
+        .from("users")
+        .update({ membership_expiry: membershipExpiry })
+        .eq("id", renewal.user_id);
+    if (userUpdateError) throw userUpdateError;
 };
 
-// Reject a renewal by userId and renewalId
-export const rejectRenewal = async ({ userId, renewalId, remark, by }: { userId: string; renewalId: string; remark?: string; by?: string }) => {
-    const userRef = doc(db, "users", userId);
-    const snap = await getDoc(userRef);
-    if (!snap.exists()) throw new Error("User not found");
+export const rejectRenewal = async ({ renewalId, remark, by }: { renewalId: string; remark?: string; by?: string }) => {
+    const { error } = await supabase
+        .from("renewals")
+        .update({
+            status: "rejected",
+            rejected_at: new Date().toISOString(),
+            rejected_remark: remark,
+            rejected_by: by,
+        })
+        .eq("id", renewalId)
+        .select()
+        .single();
+    if (error) throw new Error(notFoundToError(error.message));
+};
 
-    const data: any = snap.data() || {};
-    const renewals = data.renewals;
+// Member-facing: submit a new renewal (payment or certificate) with its receipt/certificate image.
+export const submitRenewal = async ({
+    userId,
+    kind,
+    imageUri,
+}: {
+    userId: string;
+    kind: "payment" | "certificate";
+    imageUri: string;
+}) => {
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
 
-    if (Array.isArray(renewals)) {
-        const updated = renewals.map((it: any) =>
-            it?.id === renewalId
-                ? { ...it, status: "rejected", rejectedAtMillis: Date.now(), ...(remark ? { rejectedRemark: remark } : {}), ...(by ? { rejectedBy: by } : {}) }
-                : it
-        );
-        await updateDoc(userRef, { renewals: updated });
-    } else if (renewals && typeof renewals === "object") {
-        await updateDoc(userRef, {
-            [`renewals.${renewalId}.status`]: "rejected",
-            [`renewals.${renewalId}.rejectedAtMillis`]: Date.now(),
-            ...(remark ? { [`renewals.${renewalId}.rejectedRemark`]: remark } : {}),
-            ...(by ? { [`renewals.${renewalId}.rejectedBy`]: by } : {}),
-        });
+    // Supabase Storage path owner-prefix must be set before the renewal row exists, so the
+    // renewal's own id is generated client-side here (gen_random_uuid() equivalent).
+    const renewalId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const path = `${userId}/renewals/${renewalId}/${Date.now()}.jpg`;
+
+    const { error: uploadError } = await supabase.storage
+        .from("receipts")
+        .upload(path, blob, { contentType: "image/jpeg" });
+    if (uploadError) throw uploadError;
+
+    const insertPayload: TablesInsert<"renewals"> = {
+        id: renewalId,
+        user_id: userId,
+        kind,
+        amount: kind === "certificate" ? 0 : 5,
+        status: "pending",
+    };
+    if (kind === "certificate") {
+        insertPayload.certificate_url = path;
     } else {
-        throw new Error("No renewals found for user");
+        insertPayload.screenshot_url = path;
+        insertPayload.payment_method = "bank_transfer";
     }
-};
 
+    const { error: insertError } = await supabase.from("renewals").insert(insertPayload);
+    if (insertError) throw insertError;
+};
 
 export type RenewalStatus = "near_expiry" | "pending" | "completed";
 
-const toMillisFromExpiry = (raw: any): number | null => {
-    if (typeof raw === "number") return raw;
-    if (raw && typeof raw === "object" && typeof raw.seconds === "number") return raw.seconds * 1000;
-    if (typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-        const [y, m, d] = raw.split('-').map((s) => parseInt(s, 10));
-        const dt = new Date(y, m - 1, d);
-        return isNaN(dt.getTime()) ? null : dt.getTime();
-    }
-    return null;
-};
-
-const normalizeRenewalsArray = (renewals: any): any[] => {
-    if (Array.isArray(renewals)) return renewals;
-    if (renewals && typeof renewals === "object") {
-        return Object.entries(renewals).map(([id, v]: any) => ({ id, ...(v || {}) }));
-    }
-    return [];
-};
-
-export const getRenewalStatusFromProfile = (profile: any): RenewalStatus => {
-    const renewals = normalizeRenewalsArray(profile?.renewals);
-    const hasPending = renewals.some((r) => (r?.status || "").toLowerCase() === "pending");
+export const getRenewalStatusFromProfile = (
+    profile: { renewals?: { status: string }[]; membershipExpiry?: string | null } | null | undefined
+): RenewalStatus => {
+    const hasPending = (profile?.renewals ?? []).some((r) => r.status === "pending");
     if (hasPending) return "pending";
 
-    const expiryMillis = toMillisFromExpiry(profile?.membershipExpiry);
-    if (expiryMillis && expiryMillis >= Date.now()) return "completed";
+    if (profile?.membershipExpiry) {
+        const expiryMillis = new Date(profile.membershipExpiry).getTime();
+        if (!isNaN(expiryMillis) && expiryMillis >= Date.now()) return "completed";
+    }
 
     return "near_expiry";
 };

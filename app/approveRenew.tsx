@@ -1,4 +1,5 @@
-import { auth } from "@/src/config/firebase";
+import { supabase } from "@/src/config/supabase";
+import { useAuth } from "@/src/hooks/useAuth";
 import { useTranslation } from "@/src/i18n";
 import { approveRenewal, getPendingRenewals, rejectRenewal } from "@/src/services/renewMembership";
 import dayjs from "dayjs";
@@ -10,6 +11,7 @@ export default function ApproveRenewMembershipScreen() {
     const [remarks, setRemarks] = React.useState<Record<string, string>>({});
     const [loadingId, setLoadingId] = React.useState<string | null>(null);
     const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+    const { userProfile } = useAuth();
     const { t } = useTranslation();
 
     const fetchRenewals = async () => {
@@ -25,12 +27,20 @@ export default function ApproveRenewMembershipScreen() {
         fetchRenewals()
     }, []);
 
+    const openPreview = async (path: string) => {
+        const { data, error } = await supabase.storage.from("receipts").createSignedUrl(path, 60 * 5);
+        if (error || !data) {
+            Alert.alert(t('errorTitle'), error?.message || t('failedToApprove'));
+            return;
+        }
+        setPreviewUrl(data.signedUrl);
+    };
 
     const onApprove = async (item: any) => {
         try {
             setLoadingId(item.id);
-            const by = auth?.currentUser?.email || auth?.currentUser?.uid || undefined;
-            await approveRenewal({ userId: item.userEmail, renewalId: item.id, remark: remarks[item.id], by });
+            const by = userProfile?.email || userProfile?.id || undefined;
+            await approveRenewal({ renewalId: item.id, remark: remarks[item.id], by });
             Alert.alert(t('approved'), `Renewal ${item.id} approved.`);
             setRemarks((r) => ({ ...r, [item.id]: "" }));
             await fetchRenewals();
@@ -50,8 +60,8 @@ export default function ApproveRenewMembershipScreen() {
 
         try {
             setLoadingId(item.id);
-            const by = auth?.currentUser?.email || auth?.currentUser?.uid || undefined;
-            await rejectRenewal({ userId: item.userEmail, renewalId: item.id, remark: remarks[item.id], by });
+            const by = userProfile?.email || userProfile?.id || undefined;
+            await rejectRenewal({ renewalId: item.id, remark: remarks[item.id], by });
             Alert.alert(t('rejected'), `Renewal ${item.id} rejected.`);
             setRemarks((r) => ({ ...r, [item.id]: "" }));
             await fetchRenewals();
@@ -83,7 +93,7 @@ export default function ApproveRenewMembershipScreen() {
                         <Text>{t('submitted')}: {item.submittedAtMillis ? dayjs(item.submittedAtMillis).format('DD/MM/YYYY hh:mm a') : item.submittedAt}</Text>
 
                         {(item.certificateUrl || item.screenshotUrl) ? (
-                            <TouchableOpacity onPress={() => setPreviewUrl(item.certificateUrl || item.screenshotUrl)} style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#f1f5f9', borderRadius: 6 }}>
+                            <TouchableOpacity onPress={() => openPreview(item.certificateUrl || item.screenshotUrl)} style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#f1f5f9', borderRadius: 6 }}>
                                 <Text style={{ color: '#0f172a' }}>{t('viewAttachment')}</Text>
                             </TouchableOpacity>
                         ) : null}

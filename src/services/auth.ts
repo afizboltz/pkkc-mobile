@@ -1,71 +1,78 @@
-import {
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    signOut,
-} from "firebase/auth";
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, serverTimestamp, setDoc } from "firebase/firestore";
-import { getDownloadURL, getStorage, ref as storageRef, uploadBytes } from "firebase/storage";
-import app, { auth, db } from "../config/firebase";
+import { supabase } from "../config/supabase";
+import type { UserRow } from "../types/models";
+import type { TablesInsert } from "../types/supabase";
 import { createErrorReport, logError, logInfo, logPerformance, logUserAction } from "../utils/log";
 
-const storage = getStorage(app);
+const normalizeIc = (ic: string | undefined | null): string => (ic || "").replace(/\D+/g, "").trim();
 
-// Function to generate next PKKC ID
-const generateNextPkkcId = async (): Promise<string> => {
-    const startTime = Date.now();
-    try {
-        await logInfo('generateNextPkkcId', 'Fetching latest PKKC ID');
+// Camelcase shape mirroring the old Firestore user doc, so existing screens
+// (profile.tsx, dashboard.tsx, renewMembership.tsx, etc.) don't need to change
+// how they read userProfile fields just because the DB columns are snake_case.
+export interface UserProfile {
+    id: string;
+    uid: string;
+    email: string;
+    fullName: string;
+    phoneNo: string;
+    icNo: string | null;
+    birthDate: string | null;
+    gender: string | null;
+    maritalStatus: string | null;
+    kitaResident: string | null;
+    address: string | null;
+    numberOfFamilyMembers: number | null;
+    occupation: string | null;
+    status: UserRow["status"];
+    role: UserRow["role"];
+    pkkcID: string | null;
+    slipBayaranUrl: string | null;
+    ack: boolean;
+    membershipExpiry: string | null;
+    approvedAtMillis?: number;
+    approvedRemark: string | null;
+    approvedBy: string | null;
+    rejectedAtMillis?: number;
+    rejectedRemark: string | null;
+    rejectedBy: string | null;
+    verifiedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    renewals: { status: string }[];
+    // Not backed by a DB column yet (wasn't in Firestore either); reserved for a future profile-photo feature.
+    profileImage?: string;
+}
 
-        // Query users collection to find the highest PKKC ID
-        const usersQuery = query(
-            collection(db, "users"),
-            orderBy("pkkcID", "desc"),
-            limit(1)
-        );
-
-        const querySnapshot = await getDocs(usersQuery);
-
-        if (querySnapshot.empty) {
-            // No existing PKKC IDs found, start with PKKC-0001
-            await logInfo('generateNextPkkcId', 'No existing PKKC IDs found, starting with PKKC-0001');
-            await logPerformance('generateNextPkkcId', startTime, { result: 'PKKC-0001' });
-            return "PKKC-0001";
-        }
-
-        const latestDoc = querySnapshot.docs[0];
-        const latestPkkcId = latestDoc.data().pkkcID;
-
-        if (!latestPkkcId || typeof latestPkkcId !== 'string') {
-            await logInfo('generateNextPkkcId', 'Invalid latest PKKC ID found, starting with PKKC-0001');
-            await logPerformance('generateNextPkkcId', startTime, { result: 'PKKC-0001' });
-            return "PKKC-0001";
-        }
-
-        // Extract numeric part from PKKC-XXXX format
-        const match = latestPkkcId.match(/PKKC-(\d+)/);
-        if (!match) {
-            await logInfo('generateNextPkkcId', 'Latest PKKC ID format invalid, starting with PKKC-0001');
-            await logPerformance('generateNextPkkcId', startTime, { result: 'PKKC-0001' });
-            return "PKKC-0001";
-        }
-
-        const currentNumber = parseInt(match[1], 10);
-        const nextNumber = currentNumber + 1;
-
-        // Format with leading zeros (4 digits)
-        const nextPkkcId = `PKKC-${nextNumber.toString().padStart(4, '0')}`;
-
-        await logInfo('generateNextPkkcId', `Generated next PKKC ID: ${nextPkkcId}`);
-        await logPerformance('generateNextPkkcId', startTime, { result: nextPkkcId });
-        return nextPkkcId;
-
-    } catch (error: any) {
-        await logError('generateNextPkkcId', 'Failed to generate PKKC ID', error, { fallback: 'PKKC-0001' });
-        await logPerformance('generateNextPkkcId', startTime, { result: 'PKKC-0001', error: true });
-        // Fallback to PKKC-0001 if there's an error
-        return "PKKC-0001";
-    }
-};
+const mapUserRowToProfile = (row: UserRow, renewals: { status: string }[]): UserProfile => ({
+    id: row.id,
+    uid: row.id,
+    email: row.email,
+    fullName: row.full_name,
+    phoneNo: row.phone_no,
+    icNo: row.ic_no,
+    birthDate: row.birth_date,
+    gender: row.gender,
+    maritalStatus: row.marital_status,
+    kitaResident: row.kita_resident,
+    address: row.address,
+    numberOfFamilyMembers: row.number_of_family_members,
+    occupation: row.occupation,
+    status: row.status,
+    role: row.role,
+    pkkcID: row.pkkc_id,
+    slipBayaranUrl: row.slip_bayaran_url,
+    ack: row.ack,
+    membershipExpiry: row.membership_expiry,
+    approvedAtMillis: row.approved_at ? new Date(row.approved_at).getTime() : undefined,
+    approvedRemark: row.approved_remark,
+    approvedBy: row.approved_by,
+    rejectedAtMillis: row.rejected_at ? new Date(row.rejected_at).getTime() : undefined,
+    rejectedRemark: row.rejected_remark,
+    rejectedBy: row.rejected_by,
+    verifiedAt: row.verified_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    renewals,
+});
 
 export const registerUser = async (
     email: string,
@@ -87,104 +94,107 @@ export const registerUser = async (
 ) => {
     const startTime = Date.now();
     const normalizedEmail = email.toLowerCase().trim();
-    const normalizedIc = (data.ic || "").replace(/\D+/g, "").trim();
+    const normalizedIc = normalizeIc(data.ic);
 
     try {
         await logUserAction('registerUser_start', { email: normalizedEmail, hasImage: !!imageUri });
 
-        // 1️⃣ Create the Firebase Auth account first
-        const authUser = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
-        await logInfo('registerUser', 'Firebase Auth account created successfully', { uid: authUser.user.uid });
+        // 1. Create the Supabase Auth account (or sign in, if this email already has one —
+        // mirrors the old Firestore flow where a user could resume an in-progress registration).
+        let authUserId: string;
+        let session;
+        const signUpResult = await supabase.auth.signUp({ email: normalizedEmail, password });
 
-        // 2️⃣ Optional: sign in the user immediately so Firestore rules recognize them
-        await signInWithEmailAndPassword(auth, normalizedEmail, password);
-        await logInfo('registerUser', 'User signed in successfully');
+        if (signUpResult.error) {
+            const alreadyRegistered =
+                signUpResult.error.code === 'user_already_exists' ||
+                /already registered|already exists/i.test(signUpResult.error.message);
+            if (!alreadyRegistered) throw signUpResult.error;
 
-        // 3️⃣ Now read Firestore safely
-        const userRef = doc(db, "users", normalizedEmail);
-        const userSnap = await getDoc(userRef);
+            await logInfo('registerUser', 'Email already has an auth account, signing in instead');
+            const signInResult = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+            if (signInResult.error) throw signInResult.error;
+            authUserId = signInResult.data.user.id;
+            session = signInResult.data.session;
+        } else {
+            if (!signUpResult.data.user) throw new Error("Sign up did not return a user");
+            authUserId = signUpResult.data.user.id;
+            session = signUpResult.data.session;
+        }
 
-        // 4️⃣ Two flows
-        if (userSnap.exists()) {
-            // Existing user in Firestore
-            await logInfo('registerUser', 'Existing user found in Firestore, updating profile');
-            await setDoc(
-                userRef,
-                {
-                    uid: authUser.user.uid,
-                    verifiedAt: serverTimestamp(),
-                    updatedAt: serverTimestamp(),
-                    status: "active",
-                },
-                { merge: true }
-            );
+        if (!session) {
+            // "Confirm email" is enabled on this Supabase project — the user must verify
+            // their email before they have a session, so we can't write their profile yet.
+            await logInfo('registerUser', 'No session after sign up; email confirmation required');
+            return { status: "pending_email_confirmation", type: "new" as const };
+        }
+
+        await logInfo('registerUser', 'Supabase Auth account ready', { uid: authUserId });
+
+        // 2. Check whether a profile row already exists for this account.
+        const { data: existingUser } = await supabase
+            .from("users")
+            .select("id")
+            .eq("id", authUserId)
+            .maybeSingle();
+
+        if (existingUser) {
+            await logInfo('registerUser', 'Existing user profile found, re-verifying');
+            const { error: updateError } = await supabase
+                .from("users")
+                .update({ verified_at: new Date().toISOString(), status: "active" })
+                .eq("id", authUserId);
+            if (updateError) throw updateError;
 
             await logPerformance('registerUser_existing', startTime, { email: normalizedEmail });
-            return { status: "success", type: "existing", authUser };
-        } else {
-            // New user registering
-            await logInfo('registerUser', 'New user registration process started');
-
-            // Generate PKKC ID
-            const pkkcID = await generateNextPkkcId();
-
-            // fetch file bytes
-            await logInfo('registerUser', 'Fetching image bytes');
-            const response = await fetch(imageUri);
-            const blob = await response.blob();
-
-            // create storage path
-            const filename = `registerUser/${authUser.user.uid}/${Date.now()}.jpg`;
-            const sRef = storageRef(storage, filename);
-            await logInfo('registerUser', 'Uploading receipt to storage');
-            await uploadBytes(sRef, blob, { contentType: "image/jpeg" });
-            const url = await getDownloadURL(sRef);
-            await logInfo('registerUser', 'Receipt uploaded successfully');
-
-            await logInfo('registerUser', 'Writing user profile to Firestore');
-            await setDoc(userRef, {
-                uid: authUser.user.uid,
-                email: normalizedEmail,
-                fullName: data.name || "",
-                phoneNo: data.phone || "",
-                icNo: normalizedIc,
-                birthDate: data.dob || "",
-                gender: data.gender || "",
-                status: "pending", // admin must approve
-                maritalStatus: data.status || "",
-                kitaResident: data.taman || "",
-                address: data.address || "",
-                numberOfFamilyMembers: data.household || "",
-                occupation: data.occupation || "",
-                createdAt: serverTimestamp(),
-                role: "member", // member | admin | ajk
-                slipBayaranUrl: url,
-                ack: !!data.ack,
-                updatedAt: serverTimestamp(),
-                pkkcID: pkkcID,
-            });
-            await logInfo('registerUser', 'User profile written successfully');
-
-            if (normalizedIc) {
-                await logInfo('registerUser', 'Writing icToEmail mapping');
-                const mapRef = doc(db, "icToEmail", normalizedIc);
-                await setDoc(
-                    mapRef,
-                    {
-                        email: normalizedEmail,
-                        uid: authUser.user.uid,
-                        createdAt: serverTimestamp(),
-                        updatedAt: serverTimestamp(),
-                    },
-                    { merge: true }
-                );
-                await logInfo('registerUser', 'icToEmail mapping written successfully');
-            }
-
-            await logPerformance('registerUser_new', startTime, { email: normalizedEmail, pkkcID });
-            await logUserAction('registerUser_complete', { email: normalizedEmail, pkkcID, type: 'new' });
-            return { status: "success", type: "new", authUser };
+            return { status: "success", type: "existing" as const, userId: authUserId };
         }
+
+        // 3. New registration: upload the receipt, then insert the profile row.
+        await logInfo('registerUser', 'New user registration process started');
+
+        await logInfo('registerUser', 'Fetching image bytes');
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
+
+        const path = `${authUserId}/registration/${Date.now()}.jpg`;
+        await logInfo('registerUser', 'Uploading receipt to storage');
+        const { error: uploadError } = await supabase.storage
+            .from("receipts")
+            .upload(path, blob, { contentType: "image/jpeg" });
+        if (uploadError) throw uploadError;
+        await logInfo('registerUser', 'Receipt uploaded successfully');
+
+        await logInfo('registerUser', 'Writing user profile');
+        const insertPayload: TablesInsert<"users"> = {
+            id: authUserId,
+            email: normalizedEmail,
+            full_name: data.name || "",
+            phone_no: data.phone || "",
+            ic_no: normalizedIc || null,
+            birth_date: data.dob || null,
+            gender: data.gender || "",
+            status: "pending",
+            marital_status: data.status || "",
+            kita_resident: data.taman || "",
+            address: data.address || "",
+            number_of_family_members: data.household ? Number(data.household) : null,
+            occupation: data.occupation || "",
+            role: "member",
+            slip_bayaran_url: path,
+            ack: !!data.ack,
+        };
+        const { data: insertedUser, error: insertError } = await supabase
+            .from("users")
+            .insert(insertPayload)
+            .select()
+            .single();
+        if (insertError) throw insertError;
+        await logInfo('registerUser', 'User profile written successfully');
+
+        await logPerformance('registerUser_new', startTime, { email: normalizedEmail, pkkcId: insertedUser.pkkc_id });
+        await logUserAction('registerUser_complete', { email: normalizedEmail, pkkcId: insertedUser.pkkc_id, type: 'new' });
+        return { status: "success", type: "new" as const, userId: authUserId, user: insertedUser as UserRow };
     } catch (error: any) {
         await logError('registerUser', 'User registration failed', error, {
             email: normalizedEmail,
@@ -193,7 +203,7 @@ export const registerUser = async (
         });
         await logPerformance('registerUser_error', startTime, { email: normalizedEmail, error: true });
 
-        // Create detailed error report for debugging
+        const { data: sessionData } = await supabase.auth.getSession();
         await createErrorReport(
             error,
             'registerUser',
@@ -207,14 +217,13 @@ export const registerUser = async (
                     hasData: Object.keys(data).length > 0
                 }
             },
-            auth.currentUser?.uid,
+            sessionData.session?.user.id,
             normalizedEmail
         );
 
         throw error;
     }
 };
-
 
 export const loginUser = async (email: string, password: string) => {
     const startTime = Date.now();
@@ -222,10 +231,15 @@ export const loginUser = async (email: string, password: string) => {
 
     try {
         await logUserAction('loginUser_start', { email: normalizedEmail });
-        const result = await signInWithEmailAndPassword(auth, normalizedEmail, password);
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: normalizedEmail,
+            password,
+        });
+        if (error) throw error;
+
         await logPerformance('loginUser', startTime, { email: normalizedEmail, success: true });
         await logUserAction('loginUser_success', { email: normalizedEmail });
-        return result;
+        return data;
     } catch (error: any) {
         await logError('loginUser', 'User login failed', error, {
             email: normalizedEmail,
@@ -233,13 +247,7 @@ export const loginUser = async (email: string, password: string) => {
         });
         await logPerformance('loginUser', startTime, { email: normalizedEmail, success: false });
 
-        await createErrorReport(
-            error,
-            'loginUser',
-            { email: normalizedEmail },
-            auth.currentUser?.uid,
-            normalizedEmail
-        );
+        await createErrorReport(error, 'loginUser', { email: normalizedEmail }, undefined, normalizedEmail);
 
         throw error;
     }
@@ -247,49 +255,40 @@ export const loginUser = async (email: string, password: string) => {
 
 export const loginWithIcNo = async (icNo: string, password: string) => {
     const startTime = Date.now();
+    const normalizedIc = normalizeIc(icNo);
 
     try {
-        await logUserAction('loginWithIcNo_start', { icNo: icNo.replace(/\D/g, '') });
+        await logUserAction('loginWithIcNo_start', { icNo: normalizedIc });
 
-        // Normalize IC: keep digits only
-        const normalizedIc = (icNo || "").replace(/\D+/g, "").trim();
         if (!normalizedIc) {
             throw new Error("IC not found");
         }
 
-        // Public mapping doc: icToEmail/{normalizedIc}
-        const mapRef = doc(db, "icToEmail", normalizedIc);
-        const mapSnap = await getDoc(mapRef);
-        if (!mapSnap.exists()) {
+        // Pre-auth RPC: resolves IC -> email without exposing the users table to anon.
+        const { data: email, error: rpcError } = await supabase.rpc('resolve_ic_to_email', {
+            p_ic_no: normalizedIc,
+        });
+        if (rpcError) throw rpcError;
+        if (!email) {
             throw new Error("IC not found");
         }
 
-        const data = mapSnap.data() as any;
-        const email = (data.email || "").toLowerCase().trim();
-        if (!email) {
-            throw new Error("Email not found for IC");
-        }
-
-        await logInfo('loginWithIcNo', 'IC to email mapping found', { ic: normalizedIc, email });
-        const result = await signInWithEmailAndPassword(auth, email, password);
+        await logInfo('loginWithIcNo', 'IC to email lookup resolved', { ic: normalizedIc, email });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
 
         await logPerformance('loginWithIcNo', startTime, { ic: normalizedIc, success: true });
         await logUserAction('loginWithIcNo_success', { ic: normalizedIc, email });
 
-        return result;
+        return data;
     } catch (error: any) {
         await logError('loginWithIcNo', 'IC login failed', error, {
-            icNo: icNo.replace(/\D/g, ''),
+            icNo: normalizedIc,
             errorCode: error.code
         });
-        await logPerformance('loginWithIcNo', startTime, { icNo: icNo.replace(/\D/g, ''), success: false });
+        await logPerformance('loginWithIcNo', startTime, { icNo: normalizedIc, success: false });
 
-        await createErrorReport(
-            error,
-            'loginWithIcNo',
-            { icNo: icNo.replace(/\D/g, '') },
-            auth.currentUser?.uid
-        );
+        await createErrorReport(error, 'loginWithIcNo', { icNo: normalizedIc });
 
         throw error;
     }
@@ -299,11 +298,12 @@ export const logoutUser = async () => {
     const startTime = Date.now();
 
     try {
-        await logUserAction('logoutUser_start', { uid: auth.currentUser?.uid });
-        const result = await signOut(auth);
+        const { data: sessionData } = await supabase.auth.getSession();
+        await logUserAction('logoutUser_start', { uid: sessionData.session?.user.id });
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
         await logPerformance('logoutUser', startTime, { success: true });
-        await logUserAction('logoutUser_success', { uid: auth.currentUser?.uid });
-        return result;
+        await logUserAction('logoutUser_success', { uid: sessionData.session?.user.id });
     } catch (error: any) {
         await logError('logoutUser', 'User logout failed', error);
         await logPerformance('logoutUser', startTime, { success: false });
@@ -311,32 +311,36 @@ export const logoutUser = async () => {
     }
 };
 
-export const getUserProfile = async (email: string) => {
+export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
     const startTime = Date.now();
-    const normalizedEmail = email.toLowerCase().trim();
 
     try {
-        await logInfo('getUserProfile', 'Fetching user profile', { email: normalizedEmail });
+        await logInfo('getUserProfile', 'Fetching user profile', { userId });
 
-        const docRef = doc(db, "users", normalizedEmail);
-        const docSnap = await getDoc(docRef);
-        const result = docSnap.exists() ? docSnap.data() : null;
+        const { data: userRow, error } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", userId)
+            .maybeSingle();
+        if (error) throw error;
 
-        await logPerformance('getUserProfile', startTime, {
-            email: normalizedEmail,
-            found: !!result,
-            hasData: result && Object.keys(result).length > 0
-        });
+        if (!userRow) {
+            await logPerformance('getUserProfile', startTime, { userId, found: false });
+            return null;
+        }
 
-        return result;
+        const { data: renewalRows, error: renewalsError } = await supabase
+            .from("renewals")
+            .select("status")
+            .eq("user_id", userId);
+        if (renewalsError) throw renewalsError;
+
+        await logPerformance('getUserProfile', startTime, { userId, found: true });
+
+        return mapUserRowToProfile(userRow, renewalRows ?? []);
     } catch (error: any) {
-        await logError('getUserProfile', 'Failed to get user profile', error, {
-            email: normalizedEmail
-        });
-        await logPerformance('getUserProfile', startTime, {
-            email: normalizedEmail,
-            error: true
-        });
+        await logError('getUserProfile', 'Failed to get user profile', error, { userId });
+        await logPerformance('getUserProfile', startTime, { userId, error: true });
         throw error;
     }
 };

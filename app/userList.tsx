@@ -1,3 +1,4 @@
+import { supabase } from "@/src/config/supabase";
 import { useTranslation } from "@/src/i18n";
 import { getApprovedNewUsers } from "@/src/services/newUserApproval";
 import dayjs from "dayjs";
@@ -29,6 +30,15 @@ export default function UserListScreen() {
     useEffect(() => {
         fetchRenewals()
     }, []);
+
+    const openPreview = async (path: string) => {
+        const { data, error } = await supabase.storage.from("receipts").createSignedUrl(path, 60 * 5);
+        if (error || !data) {
+            Alert.alert(t('error') || 'Error', error?.message || 'Failed to load attachment');
+            return;
+        }
+        setPreviewUrl(data.signedUrl);
+    };
 
     const buildApprovedHtml = (items: any[]) => {
         const rows = items.map((it, idx) => `<tr><td style="padding:8px;border:1px solid #ddd;">${idx + 1}</td><td style="padding:8px;border:1px solid #ddd;">${it.userFullName || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.userEmail || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.approvedAtMillis ? new Date(it.approvedAtMillis).toLocaleString() : "-"}</td></tr>`).join("");
@@ -102,8 +112,8 @@ export default function UserListScreen() {
                 </View>
 
                 {(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl) ? (
-                    <TouchableOpacity 
-                        onPress={() => setPreviewUrl(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl)} 
+                    <TouchableOpacity
+                        onPress={() => openPreview(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl)}
                         style={styles.attachmentButton}
                     >
                         <Ionicons name="image-outline" size={18} color={ColorPalette.primary[500]} />

@@ -8,6 +8,7 @@ import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
+import { AuthProvider } from "@/src/contexts/AuthContext";
 import { useColorScheme } from "@/src/hooks/useColorScheme";
 import { TranslationProvider, useTranslation } from "@/src/i18n";
 import { printLog } from "@/src/utils/log";
@@ -72,12 +73,14 @@ export default function RootLayout() {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <TranslationProvider>
-          <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-            <Screens />
-            <StatusBar style="auto" />
-          </ThemeProvider>
-        </TranslationProvider>
+        <AuthProvider>
+          <TranslationProvider>
+            <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+              <Screens />
+              <StatusBar style="auto" />
+            </ThemeProvider>
+          </TranslationProvider>
+        </AuthProvider>
       </GestureHandlerRootView>
     </SafeAreaView>
   );
