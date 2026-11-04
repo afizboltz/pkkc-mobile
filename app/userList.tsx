@@ -1,6 +1,9 @@
 import { supabase } from "@/src/config/supabase";
+import { isStaffRole, NotAuthorized } from "@/src/components/NotAuthorized";
+import { useAuth } from "@/src/hooks/useAuth";
 import { useTranslation } from "@/src/i18n";
 import { getApprovedNewUsers } from "@/src/services/newUserApproval";
+import { escapeHtml } from "@/src/utils/escapeHtml";
 import dayjs from "dayjs";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
@@ -16,6 +19,7 @@ export default function UserListScreen() {
     const [renewals, setRenewals] = useState<any[]>([]);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState<string>("");
+    const { userProfile } = useAuth();
     const { t } = useTranslation();
 
     const fetchRenewals = async () => {
@@ -41,7 +45,7 @@ export default function UserListScreen() {
     };
 
     const buildApprovedHtml = (items: any[]) => {
-        const rows = items.map((it, idx) => `<tr><td style="padding:8px;border:1px solid #ddd;">${idx + 1}</td><td style="padding:8px;border:1px solid #ddd;">${it.userFullName || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.userEmail || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.approvedAtMillis ? new Date(it.approvedAtMillis).toLocaleString() : "-"}</td></tr>`).join("");
+        const rows = items.map((it, idx) => `<tr><td style="padding:8px;border:1px solid #ddd;">${idx + 1}</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(it.userFullName) || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(it.userEmail) || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.approvedAtMillis ? new Date(it.approvedAtMillis).toLocaleString() : "-"}</td></tr>`).join("");
         return `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>Users List</title></head><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif;">
             <h2 style="text-align:center;">${'Users List'}</h2>
             <p>Total: ${items.length}</p>
@@ -123,6 +127,10 @@ export default function UserListScreen() {
             </Card>
         </Animated.View>
     );
+
+    if (!isStaffRole(userProfile?.role)) {
+        return <NotAuthorized />;
+    }
 
     return (
         <View style={styles.container}>

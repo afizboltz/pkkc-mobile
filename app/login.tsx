@@ -1,9 +1,10 @@
 import { useAuth } from '@/src/hooks/useAuth';
+import { getAppSetting } from '@/src/services/appSettings';
 import { loginWithIcNo } from '@/src/services/auth';
 import { printLog } from '@/src/utils/log';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   ActivityIndicator,
@@ -37,7 +38,12 @@ export default function LoginScreen() {
   const [icNo, setIcNo] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [bootstrapEnabled, setBootstrapEnabled] = useState(false);
   const { t } = useTranslation();
+
+  useEffect(() => {
+    getAppSetting<boolean>('bootstrap_verify_enabled', false).then(setBootstrapEnabled);
+  }, []);
 
   const buttonScale = useSharedValue(1);
 
@@ -91,10 +97,24 @@ export default function LoginScreen() {
             <Text style={styles.subtitle}>{t('signInToAccount')}</Text>
           </Animated.View>
 
-          <Animated.View 
+          <Animated.View
             style={styles.form}
             entering={FadeInUp.duration(600).delay(200).springify()}
           >
+            {bootstrapEnabled && (
+              <TouchableOpacity
+                style={styles.bootstrapCta}
+                onPress={() => navigation.navigate('verifyAndSetPassword' as never)}
+              >
+                <Ionicons name="key-outline" size={22} color={ColorPalette.primary[600]} />
+                <View style={styles.bootstrapCtaTextContainer}>
+                  <Text style={styles.bootstrapCtaTitle}>{t('bootstrapCtaTitle')}</Text>
+                  <Text style={styles.bootstrapCtaSubtitle}>{t('bootstrapCtaSubtitle')}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={ColorPalette.primary[500]} />
+              </TouchableOpacity>
+            )}
+
             <View style={styles.inputContainer}>
               <Text style={styles.label}>{t('icNo')}</Text>
               <View style={styles.inputWrapper}>
@@ -136,6 +156,13 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+
+            <TouchableOpacity
+              style={styles.forgotPasswordLink}
+              onPress={() => navigation.navigate('verifyAndSetPassword' as never)}
+            >
+              <Text style={styles.forgotPasswordText}>{t('forgotPassword')}</Text>
+            </TouchableOpacity>
 
             <Animated.View style={buttonAnimatedStyle}>
               <AnimatedTouchableOpacity
@@ -254,6 +281,39 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     padding: Spacing.md,
+  },
+  bootstrapCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: ColorPalette.primary[50],
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: ColorPalette.primary[100],
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  bootstrapCtaTextContainer: {
+    flex: 1,
+  },
+  bootstrapCtaTitle: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: ColorPalette.primary[700],
+  },
+  bootstrapCtaSubtitle: {
+    fontSize: Typography.fontSize.xs,
+    color: ColorPalette.primary[600],
+    marginTop: 2,
+  },
+  forgotPasswordLink: {
+    alignSelf: 'flex-end',
+    marginBottom: Spacing.sm,
+  },
+  forgotPasswordText: {
+    fontSize: Typography.fontSize.sm,
+    color: ColorPalette.primary[500],
+    fontWeight: Typography.fontWeight.medium,
   },
   loginButton: {
     backgroundColor: ColorPalette.primary[500],

@@ -157,7 +157,7 @@ export default function DashboardScreen() {
                 />
             </View>
 
-            {userProfile?.role === 'admin' && (
+            {(userProfile?.role === 'admin' || userProfile?.role === 'ajk') && (
                 <Animated.View entering={FadeInUp.duration(500).delay(700)}>
                     <View style={styles.adminSection}>
                         <View style={styles.adminHeader}>

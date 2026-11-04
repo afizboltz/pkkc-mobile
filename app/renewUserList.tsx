@@ -1,6 +1,9 @@
 import { supabase } from "@/src/config/supabase";
+import { isStaffRole, NotAuthorized } from "@/src/components/NotAuthorized";
+import { useAuth } from "@/src/hooks/useAuth";
 import { useTranslation } from "@/src/i18n";
 import { getApprovedRenewals } from "@/src/services/renewMembership";
+import { escapeHtml } from "@/src/utils/escapeHtml";
 import dayjs from "dayjs";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
@@ -11,6 +14,7 @@ export default function RenewUserListScreen() {
     const [renewals, setRenewals] = React.useState<any[]>([]);
     const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
     const [searchQuery, setSearchQuery] = React.useState<string>("");
+    const { userProfile } = useAuth();
     const { t } = useTranslation();
 
     const fetchRenewals = async () => {
@@ -36,7 +40,7 @@ export default function RenewUserListScreen() {
     };
 
     const buildApprovedHtml = (items: any[]) => {
-        const rows = items.map((it, idx) => `<tr><td style="padding:8px;border:1px solid #ddd;">${idx + 1}</td><td style="padding:8px;border:1px solid #ddd;">${it.userFullName || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.userEmail || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.approvedAtMillis ? new Date(it.approvedAtMillis).toLocaleString() : "-"}</td></tr>`).join("");
+        const rows = items.map((it, idx) => `<tr><td style="padding:8px;border:1px solid #ddd;">${idx + 1}</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(it.userFullName) || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(it.userEmail) || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.approvedAtMillis ? new Date(it.approvedAtMillis).toLocaleString() : "-"}</td></tr>`).join("");
         return `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>Total Approved Renewal Users</title></head><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif;">
             <h2 style="text-align:center;">${'Total Approved Renewal Users'}</h2>
             <p>Total: ${items.length}</p>
@@ -73,6 +77,10 @@ export default function RenewUserListScreen() {
             Alert.alert(t('error') || 'Error', e?.message || 'Failed to generate PDF');
         }
     };
+
+    if (!isStaffRole(userProfile?.role)) {
+        return <NotAuthorized />;
+    }
 
     return (
         <View style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>

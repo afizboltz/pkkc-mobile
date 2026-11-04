@@ -1,6 +1,6 @@
 import { supabase } from "../config/supabase";
 import type { UserRow } from "../types/models";
-import type { TablesInsert } from "../types/supabase";
+import type { TablesInsert, TablesUpdate } from "../types/supabase";
 import { createErrorReport, logError, logInfo, logPerformance, logUserAction } from "../utils/log";
 
 const normalizeIc = (ic: string | undefined | null): string => (ic || "").replace(/\D+/g, "").trim();
@@ -139,13 +139,14 @@ export const registerUser = async (
             .maybeSingle();
 
         if (existingUser) {
-            await logInfo('registerUser', 'Existing user profile found, re-verifying');
-            const { error: updateError } = await supabase
-                .from("users")
-                .update({ verified_at: new Date().toISOString(), status: "active" })
-                .eq("id", authUserId);
-            if (updateError) throw updateError;
-
+            // A profile row already exists for this account, meaning it already went
+            // through (or is going through) admin review once. Do NOT touch status
+            // here — doing so used to set it straight to "active", which let a
+            // pending/rejected applicant bypass admin approval just by re-running the
+            // sign-up form with their original email/password. Let the real current
+            // status (pending/active/rejected) keep driving routing, as it already
+            // does elsewhere.
+            await logInfo('registerUser', 'Existing user profile found, resuming without changing status');
             await logPerformance('registerUser_existing', startTime, { email: normalizedEmail });
             return { status: "success", type: "existing" as const, userId: authUserId };
         }
@@ -307,6 +308,117 @@ export const logoutUser = async () => {
     } catch (error: any) {
         await logError('logoutUser', 'User logout failed', error);
         await logPerformance('logoutUser', startTime, { success: false });
+        throw error;
+    }
+};
+
+// Result of the `self_verify_and_set_password` RPC. 'invalid' deliberately
+// covers both "wrong IC" and "wrong email" so the caller can never learn
+// which field was wrong.
+export type SelfVerifyResult = "ok" | "invalid" | "throttled";
+
+// Unified flow: used both as the temporary bootstrap for migrated users
+// (no usable password yet) and as the permanent "Forgot password?" flow for
+// everyone, forever. On "ok", signs the user straight in with the new password.
+export const selfVerifyAndSetPassword = async (
+    icNo: string,
+    email: string,
+    newPassword: string
+) => {
+    const normalizedIc = normalizeIc(icNo);
+    const normalizedEmail = email.toLowerCase().trim();
+
+    try {
+        await logUserAction('selfVerifyAndSetPassword_start', { icNo: normalizedIc });
+
+        const { data: result, error } = await supabase.rpc('self_verify_and_set_password', {
+            p_ic_no: normalizedIc,
+            p_email: normalizedEmail,
+            p_new_password: newPassword,
+        });
+        if (error) throw error;
+
+        const outcome = result as SelfVerifyResult;
+        await logUserAction('selfVerifyAndSetPassword_result', { icNo: normalizedIc, outcome });
+
+        if (outcome !== 'ok') {
+            return { outcome };
+        }
+
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+            email: normalizedEmail,
+            password: newPassword,
+        });
+        if (signInError) throw signInError;
+
+        return { outcome: 'ok' as const, session: data.session };
+    } catch (error: any) {
+        await logError('selfVerifyAndSetPassword', 'Self-verify/set-password failed', error, {
+            icNo: normalizedIc,
+        });
+        throw error;
+    }
+};
+
+// Self-service password change for an already-authenticated user.
+export const changePassword = async (newPassword: string) => {
+    try {
+        await logUserAction('changePassword_start', {});
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) throw error;
+        await logUserAction('changePassword_success', {});
+    } catch (error: any) {
+        await logError('changePassword', 'Change password failed', error);
+        throw error;
+    }
+};
+
+export type ResubmitResult = "ok" | "too_soon";
+
+// Self-service "resubmit for review" for a rejected applicant. The DB trigger
+// private.protect_privileged_user_columns only allows this specific
+// rejected -> pending transition (with rejected_* cleared) for the row's own
+// owner, and raises 'resubmit_too_soon' if attempted within 24h of the
+// rejection — everything else about this row stays admin-only.
+export const resubmitApplication = async (newReceiptUri?: string): Promise<{ outcome: ResubmitResult }> => {
+    try {
+        await logUserAction('resubmitApplication_start', {});
+
+        const { data: sessionData } = await supabase.auth.getSession();
+        const userId = sessionData.session?.user.id;
+        if (!userId) throw new Error("Not signed in");
+
+        const updatePayload: TablesUpdate<"users"> = {
+            status: "pending",
+            rejected_at: null,
+            rejected_remark: null,
+            rejected_by: null,
+        };
+
+        if (newReceiptUri) {
+            const response = await fetch(newReceiptUri);
+            const blob = await response.blob();
+            const path = `${userId}/registration/${Date.now()}.jpg`;
+            const { error: uploadError } = await supabase.storage
+                .from("receipts")
+                .upload(path, blob, { contentType: "image/jpeg" });
+            if (uploadError) throw uploadError;
+            updatePayload.slip_bayaran_url = path;
+        }
+
+        const { error } = await supabase.from("users").update(updatePayload).eq("id", userId);
+        if (error) {
+            if (/resubmit_too_soon/i.test(error.message)) {
+                await logUserAction('resubmitApplication_throttled', {});
+                return { outcome: "too_soon" };
+            }
+            throw error;
+        }
+
+        await logUserAction('resubmitApplication_success', {});
+        return { outcome: "ok" };
+    } catch (error: any) {
+        await logError('resubmitApplication', 'Resubmit application failed', error);
         throw error;
     }
 };

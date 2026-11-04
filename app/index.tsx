@@ -41,6 +41,15 @@ export default function Index() {
                         },
                     ],
                 });
+            } else if (userProfile?.status === 'rejected') {
+                navigation.reset({
+                    index: 0,
+                    routes: [
+                        {
+                            name: 'rejected',
+                        },
+                    ],
+                });
             } else {
                 navigation.reset({
                     index: 0,

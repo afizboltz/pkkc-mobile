@@ -51,11 +51,14 @@ export default function RootLayout() {
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="signup" options={{ headerShown: true, title: t('signUp'), headerBackTitle: '' }} />
           <Stack.Screen name="pending" options={{ headerShown: true, title: t('pendingApproval') }} />
+          <Stack.Screen name="rejected" options={{ headerShown: true, title: t('rejectedScreenTitle') }} />
+          <Stack.Screen name="verifyAndSetPassword" options={{ headerShown: true, title: t('verifySetPasswordTitle') }} />
           <Stack.Screen name="+not-found" />
 
           <Stack.Screen name="dashboard" options={{ headerShown: false }} />
           <Stack.Screen name="renewMembership" options={{ headerShown: true, title: t('renewMembership') }} />
           <Stack.Screen name="profile" options={{ headerShown: true, title: t('profile') }} />
+          <Stack.Screen name="changePassword" options={{ headerShown: true, title: t('changePassword') }} />
           <Stack.Screen name="marketplace" options={{ headerShown: true, title: t('marketplace') }} />
           <Stack.Screen name="announcement" options={{ headerShown: true, title: t('announcements'), headerBackTitleVisible: false }} />
 

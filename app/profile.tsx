@@ -151,6 +151,23 @@ export default function ProfileScreen() {
         </Card>
       </AnimatedView>
 
+      <AnimatedView entering={FadeInUp.duration(500).delay(350).springify()}>
+        <Card variant="elevated" padding="lg" style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="settings" size={20} color={ColorPalette.gray[600]} />
+            <Text style={styles.sectionTitle}>{t('account')}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.documentItem}
+            onPress={() => navigation.navigate('changePassword' as never)}
+          >
+            <Ionicons name="key-outline" size={22} color={ColorPalette.primary[500]} />
+            <Text style={styles.documentName}>{t('changePassword')}</Text>
+            <Ionicons name="chevron-forward" size={20} color={ColorPalette.gray[400]} />
+          </TouchableOpacity>
+        </Card>
+      </AnimatedView>
+
       <AnimatedView entering={FadeInUp.duration(500).delay(400).springify()}>
         <Card variant="elevated" padding="lg" style={styles.sectionCard}>
           <View style={styles.sectionHeader}>

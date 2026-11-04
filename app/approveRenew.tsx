@@ -1,4 +1,5 @@
 import { supabase } from "@/src/config/supabase";
+import { isStaffRole, NotAuthorized } from "@/src/components/NotAuthorized";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useTranslation } from "@/src/i18n";
 import { approveRenewal, getPendingRenewals, rejectRenewal } from "@/src/services/renewMembership";
@@ -53,7 +54,7 @@ export default function ApproveRenewMembershipScreen() {
     };
 
     const onReject = async (item: any) => {
-        if (!remarks.hasOwnProperty(item.id) || remarks[item.id].length === 0) {
+        if (!remarks[item.id] || remarks[item.id].trim().length === 0) {
             Alert.alert('Alert', t('requiredRemark'));
             return;
         }
@@ -72,6 +73,10 @@ export default function ApproveRenewMembershipScreen() {
             setLoadingId(null);
         }
     };
+
+    if (!isStaffRole(userProfile?.role)) {
+        return <NotAuthorized />;
+    }
 
     return (
         <View style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>

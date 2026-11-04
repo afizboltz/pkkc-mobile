@@ -1,10 +1,13 @@
 import { supabase } from "@/src/config/supabase";
+import { useAuth } from "@/src/hooks/useAuth";
 import { useTranslation } from "@/src/i18n";
+import { logoutUser } from "@/src/services/auth";
 import { mmkvAsyncStorage } from "@/src/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Alert, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import * as Notifications from "expo-notifications";
+import { useNavigation, useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
+import { Alert, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
@@ -13,16 +16,28 @@ import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from "@/src/t
 export default function PendingScreen() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const router = useRouter();
+    const navigation = useNavigation();
+    const { userProfile, refreshProfile } = useAuth();
     const { t } = useTranslation();
+    const isCheckingRef = useRef(false);
 
-    const handleCheckStatus = async () => {
+    // Shared by the manual button, the realtime subscription, and the push
+    // listeners below — the DB is always the source of truth, we never trust
+    // a push payload or realtime event body directly.
+    const checkStatus = async (opts?: { silentIfStillPending?: boolean }) => {
+        if (isCheckingRef.current) return;
+        isCheckingRef.current = true;
         try {
-            setIsRefreshing(true);
-            const storedEmail = await mmkvAsyncStorage.getItem("signupEmail");
-            const email = storedEmail?.trim().toLowerCase();
+            let email = userProfile?.email;
+            if (!email) {
+                const storedEmail = await mmkvAsyncStorage.getItem("signupEmail");
+                email = storedEmail?.trim().toLowerCase();
+            }
 
             if (!email) {
-                Alert.alert(t('noEmailFound'), t('pleaseSignupAgain'));
+                if (!opts?.silentIfStillPending) {
+                    Alert.alert(t('noEmailFound'), t('pleaseSignupAgain'));
+                }
                 return;
             }
 
@@ -35,7 +50,9 @@ export default function PendingScreen() {
             if (error) throw error;
 
             if (!data) {
-                Alert.alert(t('notFound'), t('registrationNotFound'));
+                if (!opts?.silentIfStillPending) {
+                    Alert.alert(t('notFound'), t('registrationNotFound'));
+                }
                 return;
             }
 
@@ -43,28 +60,86 @@ export default function PendingScreen() {
 
             if (status === "active") {
                 await mmkvAsyncStorage.removeItem('signupEmail');
+                await refreshProfile();
                 router.replace("/dashboard");
                 return;
             }
 
-            Alert.alert(
-                t('stillPending'),
-                t('pendingAdvise')
-            );
+            if (status === "rejected") {
+                await refreshProfile();
+                navigation.reset({ index: 0, routes: [{ name: 'rejected' as never }] });
+                return;
+            }
+
+            if (!opts?.silentIfStillPending) {
+                Alert.alert(t('stillPending'), t('pendingAdvise'));
+            }
         } catch (e: any) {
-            Alert.alert(t('error'), e?.message || t('failedToCheckStatus'));
+            if (!opts?.silentIfStillPending) {
+                Alert.alert(t('error'), t('failedToCheckStatus'));
+            }
         } finally {
-            setIsRefreshing(false);
+            isCheckingRef.current = false;
         }
     };
 
+    const handleCheckStatus = async () => {
+        setIsRefreshing(true);
+        await checkStatus();
+        setIsRefreshing(false);
+    };
+
+    const handleSignOut = async () => {
+        try {
+            await logoutUser();
+            navigation.reset({ index: 0, routes: [{ name: 'login' as never }] });
+        } catch (e: any) {
+            Alert.alert(t('signOutFailed'), e?.message || t('pleaseTryAgain'));
+        }
+    };
+
+    // Live updates while this screen is open: a Realtime subscription on the
+    // user's own row covers "app foregrounded and watching"; the push
+    // listeners cover "a notification arrives while the screen is mounted".
+    // The manual "Check Status" button above stays as the explicit fallback
+    // for push-denied/realtime-unavailable cases.
+    useEffect(() => {
+        const userId = userProfile?.uid;
+        if (!userId) return;
+
+        const channel = supabase
+            .channel(`pending-status-${userId}`)
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${userId}` },
+                () => {
+                    checkStatus({ silentIfStillPending: true });
+                }
+            )
+            .subscribe();
+
+        const receivedSub = Notifications.addNotificationReceivedListener(() => {
+            checkStatus({ silentIfStillPending: true });
+        });
+        const responseSub = Notifications.addNotificationResponseReceivedListener(() => {
+            checkStatus({ silentIfStillPending: true });
+        });
+
+        return () => {
+            supabase.removeChannel(channel);
+            receivedSub.remove();
+            responseSub.remove();
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userProfile?.uid]);
+
     return (
         <View style={styles.container}>
-            <Animated.View 
+            <Animated.View
                 style={styles.contentContainer}
                 entering={FadeIn.duration(600)}
             >
-                <Animated.View 
+                <Animated.View
                     style={styles.iconContainer}
                     entering={FadeInUp.duration(500).delay(100)}
                 >
@@ -87,30 +162,42 @@ export default function PendingScreen() {
                     <Card variant="outlined" padding="lg" style={styles.infoCard}>
                         <View style={styles.infoRow}>
                             <Ionicons name="checkmark-circle" size={20} color={ColorPalette.success[500]} />
-                            <Text style={styles.infoText}>Registration submitted successfully</Text>
+                            <Text style={styles.infoText}>{t('pendingInfoSubmitted')}</Text>
                         </View>
                         <View style={styles.infoRow}>
                             <Ionicons name="people" size={20} color={ColorPalette.info[500]} />
-                            <Text style={styles.infoText}>Waiting for admin approval</Text>
+                            <Text style={styles.infoText}>{t('pendingInfoWaiting')}</Text>
                         </View>
                         <View style={styles.infoRow}>
                             <Ionicons name="notifications" size={20} color={ColorPalette.warning[500]} />
-                            <Text style={styles.infoText}>You'll be notified once approved</Text>
+                            <Text style={styles.infoText}>{t('pendingInfoNotify')}</Text>
                         </View>
                     </Card>
                 </Animated.View>
 
-                <Animated.View entering={FadeInUp.duration(500).delay(500)}>
-                    <Button 
-                        variant="primary" 
-                        size="lg" 
-                        fullWidth 
+                <Animated.View entering={FadeInUp.duration(500).delay(500)} style={{ width: '100%' }}>
+                    <Button
+                        variant="primary"
+                        size="lg"
+                        fullWidth
                         onPress={handleCheckStatus}
                         loading={isRefreshing}
                         style={styles.checkButton}
                     >
                         <Ionicons name="refresh" size={20} color={ColorPalette.white} />
                         {isRefreshing ? t('checking') : t('checkStatus')}
+                    </Button>
+                </Animated.View>
+
+                <Animated.View entering={FadeInUp.duration(500).delay(550)} style={{ width: '100%' }}>
+                    <Button
+                        variant="ghost"
+                        size="md"
+                        fullWidth
+                        onPress={handleSignOut}
+                        style={styles.checkButton}
+                    >
+                        {t('logout')}
                     </Button>
                 </Animated.View>
 

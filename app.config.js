@@ -58,6 +58,7 @@ export default {
                 }
             ],
             "expo-font",
+            "expo-notifications",
         ],
         experiments: {
             typedRoutes: true,

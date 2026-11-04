@@ -1,17 +1,21 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { supabase } from "../config/supabase";
 import { getUserProfile, type UserProfile } from "../services/auth";
+import { registerForPushNotificationsAsync, unregisterCurrentDevicePushToken } from "../services/pushNotifications";
 
 interface AuthContextValue {
     userProfile: UserProfile | null;
     loading: boolean;
+    refreshProfile: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue>({ userProfile: null, loading: true });
+const AuthContext = createContext<AuthContextValue>({ userProfile: null, loading: true, refreshProfile: async () => {} });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
+    const lastUserIdRef = useRef<string | undefined>(undefined);
+    const hydrateProfileRef = useRef<(userId: string | undefined) => Promise<void>>(async () => {});
 
     useEffect(() => {
         let isMounted = true;
@@ -24,11 +28,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
                 const profile = await getUserProfile(userId);
                 if (isMounted) setUserProfile(profile);
+                lastUserIdRef.current = userId;
+                // Fire-and-forget: re-registers the device's push token on every
+                // login/app-foreground, which also handles token rotation.
+                registerForPushNotificationsAsync(userId);
             } catch (error) {
                 console.error("Failed to load user profile", error);
                 if (isMounted) setUserProfile(null);
             }
         };
+        hydrateProfileRef.current = hydrateProfile;
 
         supabase.auth.getSession().then(({ data }) => {
             hydrateProfile(data.session?.user.id).finally(() => {
@@ -44,6 +53,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
             if (event === "SIGNED_OUT") {
+                if (lastUserIdRef.current) {
+                    unregisterCurrentDevicePushToken(lastUserIdRef.current);
+                    lastUserIdRef.current = undefined;
+                }
                 if (isMounted) {
                     setUserProfile(null);
                     setLoading(false);
@@ -61,7 +74,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
     }, []);
 
-    return <AuthContext.Provider value={{ userProfile, loading }}>{children}</AuthContext.Provider>;
+    const refreshProfile = async () => {
+        await hydrateProfileRef.current(lastUserIdRef.current);
+    };
+
+    return <AuthContext.Provider value={{ userProfile, loading, refreshProfile }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextValue {
