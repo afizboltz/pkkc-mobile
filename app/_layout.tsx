@@ -68,6 +68,15 @@ export default function RootLayout() {
           <Stack.Screen name="renewUserList" options={{ headerShown: true, title: t('renewUserList') }} />
           <Stack.Screen name="organisation" options={{ headerShown: true, title: 'Organisasi PKKC' }} />
           <Stack.Screen name="directory" options={{ headerShown: true, title: 'Direktori' }} />
+
+          <Stack.Screen name="agm" options={{ headerShown: true, title: t('agm') }} />
+          <Stack.Screen name="agmRegister" options={{ headerShown: true, title: t('agmRegisterNow') }} />
+          <Stack.Screen name="agmDocuments" options={{ headerShown: true, title: t('agmViewDocuments') }} />
+          <Stack.Screen name="agmVoting" options={{ headerShown: true, title: t('agmGoToVoting') }} />
+          <Stack.Screen name="agmAdmin" options={{ headerShown: true, title: t('agmAdmin') }} />
+          <Stack.Screen name="agmAdminCodes" options={{ headerShown: true, title: t('agmGenerateCodesTitle') }} />
+          <Stack.Screen name="agmAdminDocuments" options={{ headerShown: true, title: t('agmUploadDocumentTitle') }} />
+          <Stack.Screen name="agmAdminResolutions" options={{ headerShown: true, title: t('agmAddResolutionTitle') }} />
         </Stack>
       </>
     );

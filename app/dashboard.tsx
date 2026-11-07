@@ -148,12 +148,19 @@ export default function DashboardScreen() {
                     onPress={() => navigation.navigate('directory' as never)}
                     delay={500}
                 />
-                <MenuCard 
-                    title={t('renewMembership')} 
-                    icon="autorenew" 
+                <MenuCard
+                    title={t('renewMembership')}
+                    icon="autorenew"
                     color={ColorPalette.success[500]}
                     onPress={() => navigation.navigate('renewMembership' as never)}
                     delay={600}
+                />
+                <MenuCard
+                    title={t('agm')}
+                    icon="how-to-vote"
+                    color={ColorPalette.warning[500]}
+                    onPress={() => navigation.navigate('agm' as never)}
+                    delay={650}
                 />
             </View>
 
@@ -186,12 +193,19 @@ export default function DashboardScreen() {
                                 onPress={() => navigation.navigate('renewUserList' as any)}
                                 delay={1000}
                             />
-                            <MenuCard 
-                                title={t('userList')} 
-                                icon="people" 
+                            <MenuCard
+                                title={t('userList')}
+                                icon="people"
                                 color={ColorPalette.primary[500]}
                                 onPress={() => navigation.navigate('userList' as any)}
                                 delay={1100}
+                            />
+                            <MenuCard
+                                title={t('agmAdmin')}
+                                icon="admin-panel-settings"
+                                color={ColorPalette.warning[500]}
+                                onPress={() => navigation.navigate('agmAdmin' as any)}
+                                delay={1200}
                             />
                         </View>
                     </View>
