@@ -14,6 +14,243 @@ export type Database = {
   }
   public: {
     Tables: {
+      agm_codes: {
+        Row: {
+          claimed_at: string | null
+          claimed_by: string | null
+          code: string
+          created_at: string
+          event_id: string
+          id: string
+          status: Database["public"]["Enums"]["agm_code_status"]
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          code: string
+          created_at?: string
+          event_id: string
+          id?: string
+          status?: Database["public"]["Enums"]["agm_code_status"]
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          code?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          status?: Database["public"]["Enums"]["agm_code_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agm_codes_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agm_codes_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "agm_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agm_documents: {
+        Row: {
+          category: string
+          event_id: string
+          file_path: string
+          id: string
+          title: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          category?: string
+          event_id: string
+          file_path: string
+          id?: string
+          title: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          category?: string
+          event_id?: string
+          file_path?: string
+          id?: string
+          title?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agm_documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "agm_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agm_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agm_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_date: string
+          id: string
+          is_test: boolean
+          name: string
+          quorum_threshold: number | null
+          status: Database["public"]["Enums"]["agm_event_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_date: string
+          id?: string
+          is_test?: boolean
+          name: string
+          quorum_threshold?: number | null
+          status?: Database["public"]["Enums"]["agm_event_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_date?: string
+          id?: string
+          is_test?: boolean
+          name?: string
+          quorum_threshold?: number | null
+          status?: Database["public"]["Enums"]["agm_event_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agm_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agm_resolutions: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          description: string | null
+          event_id: string
+          id: string
+          opened_at: string | null
+          opened_by: string | null
+          sequence_no: number
+          status: Database["public"]["Enums"]["agm_resolution_status"]
+          title: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          description?: string | null
+          event_id: string
+          id?: string
+          opened_at?: string | null
+          opened_by?: string | null
+          sequence_no: number
+          status?: Database["public"]["Enums"]["agm_resolution_status"]
+          title: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          description?: string | null
+          event_id?: string
+          id?: string
+          opened_at?: string | null
+          opened_by?: string | null
+          sequence_no?: number
+          status?: Database["public"]["Enums"]["agm_resolution_status"]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agm_resolutions_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agm_resolutions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "agm_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agm_resolutions_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agm_votes: {
+        Row: {
+          cast_at: string
+          choice: Database["public"]["Enums"]["agm_vote_choice"]
+          id: string
+          resolution_id: string
+          user_id: string
+        }
+        Insert: {
+          cast_at?: string
+          choice: Database["public"]["Enums"]["agm_vote_choice"]
+          id?: string
+          resolution_id: string
+          user_id: string
+        }
+        Update: {
+          cast_at?: string
+          choice?: Database["public"]["Enums"]["agm_vote_choice"]
+          id?: string
+          resolution_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agm_votes_resolution_id_fkey"
+            columns: ["resolution_id"]
+            isOneToOne: false
+            referencedRelation: "agm_resolutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agm_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           created_at: string
@@ -368,6 +605,96 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_agm_code: {
+        Args: { p_code: string }
+        Returns: {
+          claimed_at: string | null
+          claimed_by: string | null
+          code: string
+          created_at: string
+          event_id: string
+          id: string
+          status: Database["public"]["Enums"]["agm_code_status"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "agm_codes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      close_agm_resolution: {
+        Args: { p_resolution_id: string }
+        Returns: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          description: string | null
+          event_id: string
+          id: string
+          opened_at: string | null
+          opened_by: string | null
+          sequence_no: number
+          status: Database["public"]["Enums"]["agm_resolution_status"]
+          title: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "agm_resolutions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      generate_agm_codes: {
+        Args: { p_count: number; p_event_id: string }
+        Returns: {
+          claimed_at: string | null
+          claimed_by: string | null
+          code: string
+          created_at: string
+          event_id: string
+          id: string
+          status: Database["public"]["Enums"]["agm_code_status"]
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "agm_codes"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_agm_resolution_tally: {
+        Args: { p_resolution_id: string }
+        Returns: {
+          abstain_count: number
+          no_count: number
+          total: number
+          visible: boolean
+          yes_count: number
+        }[]
+      }
+      open_agm_resolution: {
+        Args: { p_resolution_id: string }
+        Returns: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          description: string | null
+          event_id: string
+          id: string
+          opened_at: string | null
+          opened_by: string | null
+          sequence_no: number
+          status: Database["public"]["Enums"]["agm_resolution_status"]
+          title: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "agm_resolutions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       resolve_ic_to_email: { Args: { p_ic_no: string }; Returns: string }
       self_verify_and_set_password: {
         Args: { p_email: string; p_ic_no: string; p_new_password: string }
@@ -375,6 +702,10 @@ export type Database = {
       }
     }
     Enums: {
+      agm_code_status: "unused" | "claimed"
+      agm_event_status: "draft" | "active" | "closed"
+      agm_resolution_status: "pending" | "open" | "closed"
+      agm_vote_choice: "yes" | "no" | "abstain"
       renewal_kind: "payment" | "certificate"
       renewal_status: "pending" | "approved" | "rejected"
       user_role: "member" | "admin" | "ajk" | "user"
@@ -506,6 +837,10 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      agm_code_status: ["unused", "claimed"],
+      agm_event_status: ["draft", "active", "closed"],
+      agm_resolution_status: ["pending", "open", "closed"],
+      agm_vote_choice: ["yes", "no", "abstain"],
       renewal_kind: ["payment", "certificate"],
       renewal_status: ["pending", "approved", "rejected"],
       user_role: ["member", "admin", "ajk", "user"],
