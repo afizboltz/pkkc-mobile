@@ -29,6 +29,8 @@ export default function AgmRegisterScreen() {
                 return t("agmErrorAlreadyClaimed");
             case "invalid_code":
                 return t("agmErrorInvalidCode");
+            case "not_authenticated":
+                return t("agmErrorNotAuthenticated");
             default:
                 return t("agmErrorUnknown");
         }

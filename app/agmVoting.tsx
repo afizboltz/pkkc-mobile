@@ -92,7 +92,7 @@ export default function AgmVotingScreen() {
                             cast_at: new Date().toISOString(),
                         });
                     } catch (error: any) {
-                        const duplicate = typeof error?.message === "string" && error.message.toLowerCase().includes("duplicate");
+                        const duplicate = error?.code === "23505"; // unique_violation on (resolution_id, user_id)
                         Alert.alert(t("error"), duplicate ? t("agmVoteAlreadyCast") : error?.message || t("agmErrorUnknown"));
                         if (duplicate) await load(false);
                     } finally {
