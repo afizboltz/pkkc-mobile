@@ -1,181 +1,211 @@
+import { Avatar, Button, Card, ChipGroup, SearchBar } from "@/src/components/ui";
+import { useAccessLevel } from "@/src/hooks/useAccessLevel";
+import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from "@/src/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
   Dimensions,
   FlatList,
   Image,
-  Keyboard,
   Linking,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { KeyboardDismissView } from "@/src/components/KeyboardDismissView";
-import { Card } from "@/src/components/ui/Card";
-import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from "@/src/theme";
 
-interface Item {
+interface Business {
   id: string;
   name: string;
-  price: string;
+  category: string;
   images: string[];
   description: string;
-  isFavorite?: boolean;
   whatsapp: string;
   instagram?: string;
   facebook?: string;
 }
 
-const sampleItems: Item[] = [
+const businesses: Business[] = [
   {
     id: "1",
-    name: "Apple Watch Series 9",
-    price: "RM 1,499",
+    name: "Dapur Kita",
+    category: "Makanan & Minuman",
     images: [
-      "https://picsum.photos/400/400?random=11",
-      "https://picsum.photos/400/400?random=12",
-      "https://picsum.photos/400/400?random=13",
+      "https://picsum.photos/400/400?random=201",
+      "https://picsum.photos/400/400?random=202",
     ],
-    description:
-      "Stay connected, track your workouts, and monitor your health with Apple Watch Series 9.",
-    whatsapp: "+60123456789",
-    instagram: "applemalaysia",
+    description: "Katering dan juadah rumah untuk majlis komuniti — tempahan harian dan mingguan.",
+    whatsapp: "+60123456701",
+    instagram: "dapurkita.cs",
   },
   {
     id: "2",
-    name: "Nike Air Max",
-    price: "RM 599",
+    name: "Kedai Runcit Cybersouth",
+    category: "Barangan Harian",
     images: [
-      "https://picsum.photos/400/400?random=21",
-      "https://picsum.photos/400/400?random=22",
+      "https://picsum.photos/400/400?random=203",
+      "https://picsum.photos/400/400?random=204",
     ],
-    description: "Lightweight and stylish shoes perfect for running or casual wear.",
-    whatsapp: "+60198765432",
-    facebook: "nike",
+    description: "Keperluan harian, barangan dapur dan runcit untuk penduduk Kita Cybersouth.",
+    whatsapp: "+60123456702",
+  },
+  {
+    id: "3",
+    name: "Cik Ais Corner",
+    category: "Minuman & Pencuci Mulut",
+    images: [
+      "https://picsum.photos/400/400?random=205",
+      "https://picsum.photos/400/400?random=206",
+    ],
+    description: "Minuman sejuk, ais kepal dan pencuci mulut — sesuai untuk acara komuniti.",
+    whatsapp: "+60123456703",
+    facebook: "cikaiscorner",
+  },
+  {
+    id: "4",
+    name: "Kita Fresh Farm",
+    category: "Buah-buahan & Sayur-sayuran",
+    images: [
+      "https://picsum.photos/400/400?random=207",
+      "https://picsum.photos/400/400?random=208",
+    ],
+    description: "Buah-buahan dan sayur-sayuran segar, dihantar terus ke rumah anda.",
+    whatsapp: "+60123456704",
+    instagram: "kitafreshfarm",
+  },
+  {
+    id: "5",
+    name: "Servis Rumah CS",
+    category: "Servis & Pembaikan",
+    images: [
+      "https://picsum.photos/400/400?random=209",
+      "https://picsum.photos/400/400?random=210",
+    ],
+    description: "Servis pembaikan rumah: paip, elektrik dan penyelenggaraan am.",
+    whatsapp: "+60123456705",
+  },
+  {
+    id: "6",
+    name: "Kek & Pastri by Nur",
+    category: "Kek & Pastri",
+    images: [
+      "https://picsum.photos/400/400?random=211",
+      "https://picsum.photos/400/400?random=212",
+    ],
+    description: "Kek sambutan, pastri dan kuih-muih buatan sendiri untuk setiap majlis.",
+    whatsapp: "+60123456706",
+    instagram: "nurkekpastri",
   },
 ];
 
-export default function MarketplaceScreen() {
-  const [items, setItems] = useState<Item[]>(sampleItems);
+const categoryChips = [
+  { key: "semua", label: "Semua" },
+  { key: "makanan", label: "Makanan" },
+  { key: "minuman", label: "Minuman" },
+  { key: "servis", label: "Servis" },
+];
+
+export default function DirektoriPeniagaScreen() {
   const [search, setSearch] = useState("");
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState("semua");
+  const [selectedItem, setSelectedItem] = useState<Business | null>(null);
+  const accessLevel = useAccessLevel();
 
-  const filteredItems = items.filter((item) =>
-    item.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const toggleFavorite = (id: string) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, isFavorite: !item.isFavorite } : item
-      )
-    );
-  };
+  const filteredItems = businesses.filter((item) => {
+    const matchesSearch =
+      item.name.toLowerCase().includes(search.toLowerCase()) ||
+      item.category.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "semua" ||
+      item.category.toLowerCase().includes(selectedCategory.toLowerCase());
+    return matchesSearch && matchesCategory;
+  });
 
   const openWhatsApp = (number: string, message?: string) => {
     const cleanNumber = number.replace(/[^0-9+]/g, "");
     const url = `https://wa.me/${cleanNumber.replace("+", "")}?text=${encodeURIComponent(
-      message || "Hi, I'm interested in your product!"
+      message || "Hai, saya berminat dengan perkhidmatan anda!"
     )}`;
     Linking.openURL(url).catch(() => {
-      Alert.alert("Error", "WhatsApp is not installed or cannot open the link.");
+      Alert.alert("Ralat", "WhatsApp tidak dipasang atau pautan tidak dapat dibuka.");
     });
   };
 
   const openLink = (url: string) => {
-    Linking.openURL(url).catch(() =>
-      Alert.alert("Error", "Unable to open link.")
+    Linking.openURL(url).catch(() => Alert.alert("Ralat", "Tidak dapat membuka pautan."));
+  };
+
+  const onPressMohonTapakNiaga = () => {
+    if (accessLevel === "guest") {
+      router.push("/login");
+      return;
+    }
+    Alert.alert(
+      "Mohon Tapak Niaga",
+      "Permohonan anda akan disemak oleh pentadbir. Akan datang tidak lama lagi."
     );
   };
 
-  const renderItem = ({ item }: { item: Item }) => (
-    <View style={styles.cardWrapper}>
+  const renderItem = ({ item }: { item: Business }) => (
+    <TouchableOpacity style={styles.row} onPress={() => setSelectedItem(item)} activeOpacity={0.8}>
+      <Avatar name={item.name} size={48} />
+      <View style={styles.rowTextContainer}>
+        <Text style={styles.rowName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.rowCategory} numberOfLines={1}>{item.category}</Text>
+      </View>
       <TouchableOpacity
-        style={styles.card}
-        onPress={() => setSelectedItem(item)}
-        activeOpacity={0.9}
+        style={styles.whatsappIconBtn}
+        onPress={() => openWhatsApp(item.whatsapp, `Hai! Saya berminat dengan "${item.name}".`)}
       >
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: item.images[0] }} style={styles.image} />
-          <TouchableOpacity
-            style={styles.favoriteBtn}
-            onPress={() => toggleFavorite(item.id)}
-          >
-            <Ionicons
-              name={item.isFavorite ? "heart" : "heart-outline"}
-              size={20}
-              color={item.isFavorite ? ColorPalette.error[500] : ColorPalette.gray[500]}
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.cardContent}>
-          <Text style={styles.itemName} numberOfLines={1}>
-            {item.name}
-          </Text>
-          <Text style={styles.itemPrice}>{item.price}</Text>
-        </View>
+        <MaterialCommunityIcons name="whatsapp" size={22} color={ColorPalette.white} />
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 
   const renderList = () => (
     <KeyboardDismissView style={styles.container}>
       <View style={styles.headerContainer}>
-        <Text style={styles.title}>Marketplace</Text>
-        <Text style={styles.subtitle}>Find great deals from your neighbors</Text>
+        <Text style={styles.title}>Direktori Peniaga</Text>
+        <Text style={styles.subtitle}>Cari perniagaan tempatan di Kita Cybersouth</Text>
       </View>
 
       <View style={styles.searchContainer}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={20} color={ColorPalette.gray[400]} />
-          <TextInput
-            placeholder="Search items..."
-            placeholderTextColor={ColorPalette.gray[400]}
-            style={styles.searchInput}
-            value={search}
-            onChangeText={setSearch}
-            returnKeyType="done"
-            onSubmitEditing={() => Keyboard.dismiss()}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch("")}>
-              <Ionicons name="close-circle" size={20} color={ColorPalette.gray[400]} />
-            </TouchableOpacity>
-          )}
-        </View>
+        <SearchBar value={search} onChangeText={setSearch} placeholder="Cari peniaga, produk atau kategori" />
       </View>
 
-      <View>
-        <FlatList
-          data={filteredItems}
-          numColumns={2}
-          keyExtractor={(item) => item.id}
-          columnWrapperStyle={styles.row}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          renderItem={renderItem}
-          keyboardShouldPersistTaps="handled"
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="search" size={48} color={ColorPalette.gray[300]} />
-              <Text style={styles.emptyText}>No items found</Text>
-            </View>
-          }
-        />
+      <View style={styles.chipContainer}>
+        <ChipGroup options={categoryChips} selectedKey={selectedCategory} onSelect={setSelectedCategory} />
       </View>
+
+      <FlatList
+        data={filteredItems}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        renderItem={renderItem}
+        keyboardShouldPersistTaps="handled"
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="search" size={48} color={ColorPalette.gray[300]} />
+            <Text style={styles.emptyText}>Tiada peniaga ditemui</Text>
+          </View>
+        }
+        ListFooterComponent={
+          <Button variant="success" fullWidth onPress={onPressMohonTapakNiaga} style={styles.applyButton}>
+            Mohon Tapak Niaga
+          </Button>
+        }
+      />
     </KeyboardDismissView>
   );
 
-  const renderDetails = (item: Item) => (
+  const renderDetails = (item: Business) => (
     <View style={styles.detailContainer}>
       <View style={styles.detailHeader}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => setSelectedItem(null)}
-        >
+        <TouchableOpacity style={styles.backBtn} onPress={() => setSelectedItem(null)}>
           <Ionicons name="arrow-back" size={22} color={ColorPalette.white} />
         </TouchableOpacity>
       </View>
@@ -186,36 +216,25 @@ export default function MarketplaceScreen() {
           horizontal
           showsHorizontalScrollIndicator={false}
           keyExtractor={(_, i) => i.toString()}
-          renderItem={({ item: img }) => (
-            <Image source={{ uri: img }} style={styles.carouselImage} />
-          )}
+          renderItem={({ item: img }) => <Image source={{ uri: img }} style={styles.carouselImage} />}
         />
       </View>
 
       <View style={styles.detailContent}>
         <Card variant="elevated" padding="lg" style={styles.detailCard}>
           <Text style={styles.detailTitle}>{item.name}</Text>
-          <Text style={styles.detailPrice}>{item.price}</Text>
+          <Text style={styles.detailCategory}>{item.category}</Text>
           <Text style={styles.detailDesc}>{item.description}</Text>
 
           <View style={styles.sellerSection}>
-            <Text style={styles.sectionTitle}>Contact Seller</Text>
+            <Text style={styles.sectionTitle}>Hubungi Peniaga</Text>
 
             <TouchableOpacity
               style={styles.whatsappButton}
-              onPress={() =>
-                openWhatsApp(
-                  item.whatsapp,
-                  `Hi! I'm interested in your product "${item.name}".`
-                )
-              }
+              onPress={() => openWhatsApp(item.whatsapp, `Hai! Saya berminat dengan "${item.name}".`)}
             >
-              <MaterialCommunityIcons
-                name="whatsapp"
-                size={22}
-                color={ColorPalette.white}
-              />
-              <Text style={styles.whatsappButtonText}>Chat on WhatsApp</Text>
+              <MaterialCommunityIcons name="whatsapp" size={22} color={ColorPalette.white} />
+              <Text style={styles.whatsappButtonText}>Chat di WhatsApp</Text>
             </TouchableOpacity>
 
             {item.instagram && (
@@ -223,11 +242,7 @@ export default function MarketplaceScreen() {
                 style={styles.socialButton}
                 onPress={() => openLink(`https://instagram.com/${item.instagram}`)}
               >
-                <MaterialCommunityIcons
-                  name="instagram"
-                  size={20}
-                  color={ColorPalette.gray[700]}
-                />
+                <MaterialCommunityIcons name="instagram" size={20} color={ColorPalette.gray[700]} />
                 <Text style={styles.socialText}>@{item.instagram}</Text>
               </TouchableOpacity>
             )}
@@ -237,11 +252,7 @@ export default function MarketplaceScreen() {
                 style={styles.socialButton}
                 onPress={() => openLink(`https://facebook.com/${item.facebook}`)}
               >
-                <MaterialCommunityIcons
-                  name="facebook"
-                  size={20}
-                  color={ColorPalette.gray[700]}
-                />
+                <MaterialCommunityIcons name="facebook" size={20} color={ColorPalette.gray[700]} />
                 <Text style={styles.socialText}>{item.facebook}</Text>
               </TouchableOpacity>
             )}
@@ -255,7 +266,6 @@ export default function MarketplaceScreen() {
 }
 
 const { width } = Dimensions.get("window");
-const CARD_WIDTH = (width - Spacing.md * 3) / 2;
 
 const styles = StyleSheet.create({
   container: {
@@ -278,96 +288,72 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   searchContainer: {
+    marginBottom: Spacing.sm,
+  },
+  chipContainer: {
     marginBottom: Spacing.md,
-  },
-  searchBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: ColorPalette.white,
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.md,
-    borderWidth: 1,
-    borderColor: ColorPalette.gray[200],
-    ...Shadow.sm,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    paddingLeft: Spacing.sm,
-    fontSize: Typography.fontSize.base,
-    color: ColorPalette.gray[700],
   },
   listContent: {
     paddingBottom: Spacing.xxl,
   },
   row: {
-    justifyContent: "space-between",
-    marginBottom: Spacing.md,
-  },
-  cardWrapper: {
-    width: CARD_WIDTH,
-    marginRight: Spacing.md,
-  },
-  card: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: ColorPalette.white,
-    borderRadius: BorderRadius.xl,
-    overflow: "hidden",
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
     ...Shadow.sm,
   },
-  imageContainer: {
-    position: 'relative',
+  rowTextContainer: {
+    flex: 1,
   },
-  image: {
-    width: '100%',
-    height: 140,
-  },
-  favoriteBtn: {
-    position: 'absolute',
-    right: Spacing.sm,
-    top: Spacing.sm,
-    backgroundColor: ColorPalette.white,
-    borderRadius: BorderRadius.full,
-    padding: 6,
-    ...Shadow.sm,
-  },
-  cardContent: {
-    padding: Spacing.md,
-  },
-  itemName: {
-    fontSize: Typography.fontSize.sm,
+  rowName: {
+    fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
-    color: ColorPalette.gray[800],
+    color: ColorPalette.gray[900],
   },
-  itemPrice: {
-    fontSize: Typography.fontSize.sm,
-    color: ColorPalette.success[600],
-    fontWeight: Typography.fontWeight.bold,
-    marginTop: 4,
+  rowCategory: {
+    fontSize: Typography.fontSize.xs,
+    color: ColorPalette.gray[500],
+    marginTop: 2,
+  },
+  whatsappIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.full,
+    backgroundColor: ColorPalette.success[500],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  applyButton: {
+    marginTop: Spacing.sm,
   },
   detailContainer: {
     flex: 1,
     backgroundColor: ColorPalette.gray[50],
   },
   detailHeader: {
-    position: 'absolute',
+    position: "absolute",
     top: 50,
     left: Spacing.md,
     zIndex: 10,
   },
   backBtn: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     borderRadius: BorderRadius.full,
     padding: Spacing.sm,
   },
   carouselContainer: {
-    width: '100%',
+    width: "100%",
     aspectRatio: 1,
     backgroundColor: ColorPalette.gray[900],
   },
   carouselImage: {
-    width: width,
-    height: '100%',
-    resizeMode: 'cover',
+    width,
+    height: "100%",
+    resizeMode: "cover",
   },
   detailContent: {
     flex: 1,
@@ -384,10 +370,10 @@ const styles = StyleSheet.create({
     color: ColorPalette.gray[900],
     marginBottom: Spacing.xs,
   },
-  detailPrice: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: ColorPalette.success[600],
+  detailCategory: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: ColorPalette.brandPink[600],
     marginBottom: Spacing.md,
   },
   detailDesc: {
@@ -408,9 +394,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   whatsappButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: ColorPalette.success[500],
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
@@ -423,8 +409,8 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
   },
   socialButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     backgroundColor: ColorPalette.gray[100],
@@ -437,9 +423,8 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
   },
   emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingTop: 60,
   },
   emptyText: {
