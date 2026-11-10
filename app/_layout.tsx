@@ -9,6 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
 import { AuthProvider } from "@/src/contexts/AuthContext";
+import { GuestProvider } from "@/src/contexts/GuestContext";
 import { useColorScheme } from "@/src/hooks/useColorScheme";
 import { TranslationProvider, useTranslation } from "@/src/i18n";
 import { printLog } from "@/src/utils/log";
@@ -55,11 +56,14 @@ export default function RootLayout() {
           <Stack.Screen name="verifyAndSetPassword" options={{ headerShown: true, title: t('verifySetPasswordTitle') }} />
           <Stack.Screen name="+not-found" />
 
-          <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="renewMembership" options={{ headerShown: true, title: t('renewMembership') }} />
-          <Stack.Screen name="profile" options={{ headerShown: true, title: t('profile') }} />
           <Stack.Screen name="changePassword" options={{ headerShown: true, title: t('changePassword') }} />
-          <Stack.Screen name="marketplace" options={{ headerShown: true, title: t('marketplace') }} />
+          <Stack.Screen name="direktoriPeniaga" options={{ headerShown: true, title: t('direktoriPeniaga') }} />
+          <Stack.Screen name="keahlian" options={{ headerShown: true, title: t('keahlian') }} />
+          <Stack.Screen name="bancian" options={{ headerShown: true, title: t('bancian') }} />
+          <Stack.Screen name="dokumen" options={{ headerShown: true, title: t('dokumen') }} />
+          <Stack.Screen name="notifikasi" options={{ headerShown: true, title: t('notifikasi') }} />
           <Stack.Screen name="announcement" options={{ headerShown: true, title: t('announcements'), headerBackTitleVisible: false }} />
 
           <Stack.Screen name="approveRenew" options={{ headerShown: true, title: t('approveRenewal') }} />
@@ -86,12 +90,14 @@ export default function RootLayout() {
     <SafeAreaView style={{ flex: 1 }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <AuthProvider>
-          <TranslationProvider>
-            <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-              <Screens />
-              <StatusBar style="auto" />
-            </ThemeProvider>
-          </TranslationProvider>
+          <GuestProvider>
+            <TranslationProvider>
+              <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+                <Screens />
+                <StatusBar style="auto" />
+              </ThemeProvider>
+            </TranslationProvider>
+          </GuestProvider>
         </AuthProvider>
       </GestureHandlerRootView>
     </SafeAreaView>

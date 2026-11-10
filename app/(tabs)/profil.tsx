@@ -15,7 +15,7 @@ import {
 
 import { useTranslation } from "@/src/i18n";
 import { requestAccountDeletion } from "@/src/services/auth";
-import { useAuth } from "../src/hooks/useAuth";
+import { useAuth } from "@/src/hooks/useAuth";
 import { BorderRadius, ColorPalette, Spacing, Typography } from "@/src/theme";
 
 export default function ProfileScreen() {
@@ -50,7 +50,7 @@ export default function ProfileScreen() {
     if (userPic) {
       return { uri: userPic } as const;
     } else {
-      return require('../src/assets/images/placeholder/userDefault.png');
+      return require('../../src/assets/images/placeholder/userDefault.png');
     }
   };
 

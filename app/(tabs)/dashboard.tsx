@@ -180,9 +180,9 @@ export default function DashboardScreen() {
                         <Text style={styles.userName} numberOfLines={1}>{userProfile?.fullName}</Text>
                         <Text style={styles.associationName} numberOfLines={1}>{t('associationName')}</Text>
                     </View>
-                    <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('profile' as never)}>
+                    <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('profil' as never)}>
                         <Image
-                            source={require('../src/assets/images/placeholder/userDefault.png')}
+                            source={require('../../src/assets/images/placeholder/userDefault.png')}
                             style={styles.avatar}
                         />
                     </TouchableOpacity>

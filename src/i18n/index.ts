@@ -18,6 +18,16 @@ const translations: Translations = {
         announcements: 'Pengumuman',
         approveRenewal: 'Luluskan Pembaharuan',
 
+        utama: 'Utama',
+        program: 'Program',
+        aduan: 'Aduan',
+        komuniti: 'Komuniti',
+        direktoriPeniaga: 'Direktori Peniaga',
+        keahlian: 'Keahlian PKKC',
+        bancian: 'Bancian / Undian',
+        dokumen: 'Dokumen',
+        notifikasi: 'Notifikasi',
+
         hi: 'Hai',
         associationName: 'Persatuan Komuniti KITA Cybersouth',
         adminPanel: 'Panel Admin',
@@ -281,6 +291,16 @@ const translations: Translations = {
         marketplace: 'Marketplace',
         announcements: 'Announcements',
         approveRenewal: 'Approve Renewal',
+
+        utama: 'Home',
+        program: 'Programs',
+        aduan: 'Complaints',
+        komuniti: 'Community',
+        direktoriPeniaga: 'Business Directory',
+        keahlian: 'PKKC Membership',
+        bancian: 'Surveys / Voting',
+        dokumen: 'Documents',
+        notifikasi: 'Notifications',
 
         hi: 'Hi',
         associationName: 'Persatuan Komuniti KITA Cybersouth',

@@ -49,7 +49,10 @@ export type PostAuthRouteName = "login" | "pending" | "dashboard" | "rejected" |
 // (routing right after a successful sign-in) so a pending/rejected account can never land on
 // the dashboard just because one of those call sites forgot to check status.
 export const getPostAuthRouteName = (profile: UserProfile | null | undefined): PostAuthRouteName => {
-    if (!profile) return "login";
+    // No session (fresh install, signed out, or guest browsing): land on the
+    // onboarding screen (Log Masuk / Daftar Akaun / Teruskan sebagai Tetamu)
+    // rather than jumping straight to the login form.
+    if (!profile) return "preLogin";
     switch (profile.status) {
         case "pending":
             return "pending";
