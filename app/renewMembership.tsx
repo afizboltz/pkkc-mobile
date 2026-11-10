@@ -1,20 +1,14 @@
 import { useTranslation } from "@/src/i18n";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "expo-router";
-import { arrayUnion, doc, getFirestore, serverTimestamp, setDoc } from "firebase/firestore";
-import { getDownloadURL, getStorage, ref as storageRef, uploadBytes } from "firebase/storage";
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Animated, { FadeInUp } from "react-native-reanimated";
-import app, { auth } from "../src/config/firebase";
 import { useAuth } from "../src/hooks/useAuth";
+import { submitRenewal } from "../src/services/renewMembership";
 import { Card } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
 import { Ionicons } from "@expo/vector-icons";
 import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from "@/src/theme";
-
-const db = getFirestore();
-const storage = getStorage(app);
 
 export default function RenewMembershipScreen() {
     const navigation = useNavigation();
@@ -23,7 +17,6 @@ export default function RenewMembershipScreen() {
     const [uploading, setUploading] = useState(false);
     const { t } = useTranslation();
 
-    const emailKey = userProfile?.email!.toLowerCase().trim();
     const isAjk = (userProfile?.role || "").toLowerCase() === "ajk" || (userProfile?.role || "").toLowerCase() === "admin";
     const [selectedKind, setSelectedKind] = useState<"payment" | "certificate">("payment");
 
@@ -43,8 +36,8 @@ export default function RenewMembershipScreen() {
         }
     };
 
-    const submitRenewal = async () => {
-        if (!auth.currentUser) {
+    const onSubmitRenewal = async () => {
+        if (!userProfile?.id) {
             Alert.alert(t('notSignedIn'));
             return;
         }
@@ -58,57 +51,19 @@ export default function RenewMembershipScreen() {
 
         try {
             setUploading(true);
-            const uid = auth.currentUser.uid;
-            const response = await fetch(imageUri);
-            const blob = await response.blob();
-
-            const filename = `renewMember/${uid}/${Date.now()}.jpg`;
-            const sRef = storageRef(storage, filename);
-            await uploadBytes(sRef, blob, { contentType: "image/jpeg" });
-            const url = await getDownloadURL(sRef);
-
-            await setDoc(
-                doc(db, "users", emailKey),
-                {
-                    email: emailKey,
-                    updatedAt: serverTimestamp(),
-                },
-                { merge: true }
-            );
-
-            const renewalId = `${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
-            await setDoc(
-                doc(db, "users", emailKey),
-                {
-                    renewals: arrayUnion({
-                        id: renewalId,
-                        kind: effectiveKind,
-                        amount: effectiveKind === "certificate" ? 0 : 5,
-                        submittedAtMillis: Date.now(),
-                        ...(effectiveKind === "certificate" ? { certificateUrl: url } : { screenshotUrl: url, paymentMethod: "bank_transfer" }),
-                        status: "pending",
-                    }),
-                },
-                { merge: true }
-            );
-
+            await submitRenewal({ userId: userProfile.id, kind: effectiveKind, imageUri });
             setUploading(false);
             Alert.alert(t('success'), t('renewalSubmitted'));
         } catch (err: any) {
             setUploading(false);
-            const code = err?.code;
-            const serverResponse = err?.customData?.serverResponse;
-            console.error("Upload error:", code, err?.message, serverResponse);
-            Alert.alert(
-                t('uploadFailed'),
-                `${err?.message || "Unknown error"}${code ? `\nCode: ${code}` : ""}`
-            );
+            console.error("Upload error:", err?.message);
+            Alert.alert(t('uploadFailed'), err?.message || "Unknown error");
         }
     };
 
     return (
         <View style={styles.container}>
-            <Animated.View entering={FadeInUp.duration(400)}>
+            <View>
                 <Card variant="elevated" padding="lg">
                     <View style={styles.header}>
                         <View style={styles.iconContainer}>
@@ -151,9 +106,9 @@ export default function RenewMembershipScreen() {
                         </View>
                     )}
                 </Card>
-            </Animated.View>
+            </View>
 
-            <Animated.View entering={FadeInUp.duration(400).delay(100)}>
+            <View>
                 <Card variant="elevated" padding="lg" style={styles.uploadCard}>
                     <Text style={styles.uploadLabel}>
                         {(isAjk ? (selectedKind === 'certificate') : false) ? (t('pickCertificate') || 'Pick Certificate') : t('pickScreenshot')}
@@ -182,9 +137,9 @@ export default function RenewMembershipScreen() {
                         </View>
                     )}
                 </Card>
-            </Animated.View>
+            </View>
 
-            <Animated.View entering={FadeInUp.duration(400).delay(200)} style={styles.submitContainer}>
+            <View style={styles.submitContainer}>
                 {uploading ? (
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color={ColorPalette.primary[500]} />
@@ -195,14 +150,14 @@ export default function RenewMembershipScreen() {
                         variant="primary" 
                         size="lg" 
                         fullWidth 
-                        onPress={submitRenewal}
+                        onPress={onSubmitRenewal}
                         disabled={!imageUri}
                     >
                         <Ionicons name="checkmark-circle" size={20} color={ColorPalette.white} />
                         {t('submit')}
                     </Button>
                 )}
-            </Animated.View>
+            </View>
         </View>
     );
 }

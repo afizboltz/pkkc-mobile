@@ -16,19 +16,18 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Animated, { FadeInDown, FadeInUp, SlideInRight } from "react-native-reanimated";
 import { Avatar } from "react-native-paper";
 import ParsedText from 'react-native-parsed-text';
 
 
 interface Announcement {
   id: string;
-  message?: string;
-  date?: string;
-  images?: string[];
-  title?: string;
-  description?: string;
-  createdAt?: { toDate: () => Date };
+  message?: string | null;
+  date?: string | null;
+  images?: string[] | null;
+  title?: string | null;
+  description?: string | null;
+  createdAt?: string | null;
 }
 
 export default function AnnouncementScreen() {
@@ -80,10 +79,8 @@ export default function AnnouncementScreen() {
     Linking.openURL(url);
   };
 
-  const renderAnnouncement = ({ item, index }: { item: Announcement; index: number }) => (
-    <Animated.View 
-      entering={FadeInUp.duration(400).delay(index * 100).springify()}
-    >
+  const renderAnnouncement = ({ item }: { item: Announcement }) => (
+    <View>
       <View style={styles.messageRow}>
         <Avatar.Icon
           icon="bullhorn"
@@ -135,25 +132,25 @@ export default function AnnouncementScreen() {
 
           <View style={styles.timeContainer}>
             <ThemedText type="caption" style={styles.timeText}>
-              {item.createdAt ? dayjs(item.createdAt.toDate()).format("h:mm A") : dayjs(item.date).format("h:mm A")}
+              {item.createdAt ? dayjs(item.createdAt).format("h:mm A") : dayjs(item.date).format("h:mm A")}
             </ThemedText>
           </View>
         </Card>
       </View>
-    </Animated.View>
+    </View>
   );
 
-  const renderSection = ({ item, index }: { item: { title: string; data: Announcement[] }; index: number }) => (
-    <Animated.View entering={FadeInDown.duration(400).delay(index * 50)}>
+  const renderSection = ({ item }: { item: { title: string; data: Announcement[] } }) => (
+    <View>
       <View style={styles.dateChip}>
         <ThemedText type="labelMedium" style={styles.dateText}>{item.title}</ThemedText>
       </View>
-      {item.data.map((msg, idx) => (
+      {item.data.map((msg) => (
         <View key={msg.id}>
-          {renderAnnouncement({ item: msg, index: idx })}
+          {renderAnnouncement({ item: msg })}
         </View>
       ))}
-    </Animated.View>
+    </View>
   );
 
   if (loading) {
@@ -192,10 +189,7 @@ export default function AnnouncementScreen() {
         animationType="fade"
         onRequestClose={() => setModalVisible(false)}
       >
-        <Animated.View 
-          style={styles.modalContainer}
-          entering={FadeInDown.duration(300)}
-        >
+        <View style={styles.modalContainer}>
           <TouchableOpacity
             style={styles.modalBackground}
             activeOpacity={1}
@@ -218,7 +212,7 @@ export default function AnnouncementScreen() {
               resizeMode="contain"
             />
           </TouchableOpacity>
-        </Animated.View>
+        </View>
       </Modal>
     </View>
   );

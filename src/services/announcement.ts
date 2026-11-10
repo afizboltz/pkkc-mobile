@@ -1,14 +1,19 @@
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
-import { db } from "../config/firebase";
+import { supabase } from "../config/supabase";
 
 export const getAnnouncements = async () => {
-    const colRef = collection(db, "announcement");
+    const { data, error } = await supabase
+        .from("announcements")
+        .select("*")
+        .order("created_at", { ascending: false });
+    if (error) throw error;
 
-    const q = query(
-        colRef,
-        orderBy("createdAt", "desc")
-    );
-
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return (data ?? []).map((row) => ({
+        id: row.id,
+        title: row.title,
+        message: row.message,
+        description: row.description,
+        images: row.images,
+        date: row.date,
+        createdAt: row.created_at,
+    }));
 };

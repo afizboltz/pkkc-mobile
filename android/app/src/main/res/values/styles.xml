@@ -9,5 +9,10 @@
     <item name="windowSplashScreenBackground">@color/splashscreen_background</item>
     <item name="windowSplashScreenAnimatedIcon">@drawable/splashscreen_logo</item>
     <item name="postSplashScreenTheme">@style/AppTheme</item>
+    <!-- Android decides edge-to-edge enforcement at window-creation time using
+         this theme (the activity's manifest theme), not AppTheme (which only
+         takes over after the splash screen via postSplashScreenTheme) - so the
+         opt-out has to be set here too, or it never actually takes effect. -->
+    <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
   </style>
 </resources>

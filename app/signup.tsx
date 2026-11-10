@@ -1,34 +1,57 @@
+import { KeyboardDismissView } from '@/src/components/KeyboardDismissView';
 import DatePickerModal from '@/src/components/ui/DatePickerModal';
 import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
+import { StepProgress } from '@/src/components/ui/StepProgress';
+import { TextInput } from '@/src/components/ui/TextInput';
 import { useTranslation } from '@/src/i18n';
 import { printLog } from '@/src/utils/log';
 import { mmkvAsyncStorage } from '@/src/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from "expo-image-picker";
-import { useNavigation } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
     Image,
-    KeyboardAvoidingView,
+    Keyboard,
     Platform,
     SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { registerUser } from '../src/services/auth';
 import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from '@/src/theme';
 
-const AnimatedView = Animated.createAnimatedComponent(View);
+type FormData = {
+    name: string;
+    email: string;
+    phone: string;
+    password: string;
+    confirmPassword: string;
+    receipt: string;
+    ic: string;
+    dob: string;
+    gender: string;
+    status: string;
+    taman: string;
+    address: string;
+    household: string;
+    occupation: string;
+    ack: boolean;
+};
+
+const STEP_FIELDS: Array<Array<keyof FormData>> = [
+    ['name', 'ic', 'email', 'phone', 'dob', 'gender'],
+    ['status', 'taman', 'address', 'household', 'occupation'],
+    ['password', 'confirmPassword'],
+];
 
 export default function SignupScreen() {
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         name: '',
         email: '',
         phone: '',
@@ -45,6 +68,8 @@ export default function SignupScreen() {
         occupation: '',
         ack: false,
     });
+    const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+    const [step, setStep] = useState(0);
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -54,7 +79,71 @@ export default function SignupScreen() {
     const navigation = useNavigation();
     const { t } = useTranslation();
 
-    const pickImage = async () => {
+    const isEmpty = (v: any) => typeof v === 'string' ? v.trim().length === 0 : !v;
+
+    const validateField = (field: keyof FormData, value: any): string => {
+        switch (field) {
+            case 'name':
+            case 'phone':
+            case 'dob':
+            case 'gender':
+            case 'status':
+            case 'taman':
+            case 'address':
+            case 'household':
+            case 'occupation':
+                return isEmpty(value) ? t('fieldRequired') : '';
+            case 'ic':
+                if (isEmpty(value)) return t('fieldRequired');
+                return String(value).replace(/\D/g, '').length === 12 ? '' : t('invalidIcNo');
+            case 'email':
+                if (isEmpty(value)) return t('fieldRequired');
+                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? '' : t('invalidEmail');
+            case 'password':
+                if (isEmpty(value)) return t('fieldRequired');
+                return value.length >= 6 ? '' : t('passwordTooShort');
+            case 'confirmPassword':
+                if (isEmpty(value)) return t('fieldRequired');
+                return value === formData.password ? '' : t('passwordsNotMatch');
+            default:
+                return '';
+        }
+    };
+
+    const updateFormData = (field: keyof FormData, value: any) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleFieldChange = (field: keyof FormData, value: any) => {
+        updateFormData(field, value);
+        setErrors(prev => (prev[field] ? { ...prev, [field]: validateField(field, value) } : prev));
+    };
+
+    const handleFieldBlur = (field: keyof FormData) => {
+        setErrors(prev => ({ ...prev, [field]: validateField(field, formData[field]) }));
+    };
+
+    const validateStep = (stepIndex: number): boolean => {
+        const fields = STEP_FIELDS[stepIndex];
+        const newErrors: Partial<Record<keyof FormData, string>> = { ...errors };
+        let hasError = false;
+        fields.forEach((f) => {
+            const err = validateField(f, formData[f]);
+            newErrors[f] = err;
+            if (err) hasError = true;
+        });
+        setErrors(newErrors);
+        return !hasError;
+    };
+
+    const goNext = () => {
+        if (!validateStep(step)) return;
+        setStep((s) => Math.min(s + 1, STEP_FIELDS.length - 1));
+    };
+
+    const goBack = () => setStep((s) => Math.max(s - 1, 0));
+
+    const requestGalleryImage = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permission.granted) {
             Alert.alert(t('permissionRequired'), t('needPhotoPermission'));
@@ -64,72 +153,41 @@ export default function SignupScreen() {
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             quality: 0.7,
         });
-
         if (!res.canceled) {
             setImageUri(res.assets[0].uri);
-            updateFormData('receipt', res.assets[0].uri)
+            updateFormData('receipt', res.assets[0].uri);
         }
     };
 
-    const isEmpty = (v: any) => typeof v === 'string' ? v.trim().length === 0 : !v;
+    const requestCameraImage = async () => {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+            Alert.alert(t('permissionRequired'), t('needCameraPermission'));
+            return;
+        }
+        const res = await ImagePicker.launchCameraAsync({ quality: 0.7 });
+        if (!res.canceled) {
+            setImageUri(res.assets[0].uri);
+            updateFormData('receipt', res.assets[0].uri);
+        }
+    };
 
     const handleSignup = async () => {
-        setIsLoading(true);
+        if (!validateStep(2)) return;
 
-        const { name, email, phone, password, confirmPassword, receipt, ic, dob, gender, status, taman, address, household, occupation, ack } = formData;
-
-        const fieldLabels: Record<string, string> = {
-            name: t('fullNameReq'),
-            email: t('emailAddressReq'),
-            phone: t('phoneNumber'),
-            password: t('passwordReq'),
-            confirmPassword: t('confirmPasswordReq'),
-            receipt: t('uploadPaymentScreenshot'),
-            ic: t('No ic'),
-            dob: t('TARIKH LAHIR'),
-            gender: t('JANTINA'),
-            status: t('Status'),
-            taman: t('TAMAN PERUMAHAN'),
-            address: t('ALAMAT PENUH'),
-            household: t('BILANGAN AHLI RUMAH'),
-            occupation: t('PEKERJAAN'),
-        };
-
-        const missing: string[] = [];
-        (Object.keys(fieldLabels) as Array<keyof typeof fieldLabels>).forEach((key) => {
-            const value = (formData as any)[key];
-            if (isEmpty(value)) missing.push(fieldLabels[key]);
-        });
-
-        if (missing.length > 0) {
-            setIsLoading(false);
-            Alert.alert(t('error'), `${t('requiredFields')}\n\n${missing.map((m, i) => `${i + 1}. ${m}`).join('\n')}`);
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            setIsLoading(false);
-            Alert.alert(t('error'), t('passwordsNotMatch'));
-            return;
-        }
-
-        if (password.length < 6) {
-            setIsLoading(false);
-            Alert.alert(t('error'), t('passwordTooShort'));
-            return;
-        }
-
-        if (!receipt) {
-            setIsLoading(false);
+        if (!formData.receipt) {
             Alert.alert(t('error'), t('pleaseUploadReceipt'));
             return;
         }
 
-        if (!ack) {
-            setIsLoading(false);
+        if (!formData.ack) {
             Alert.alert(t('error'), t('pleaseAcknowledge'));
             return;
         }
+
+        setIsLoading(true);
+
+        const { name, email, phone, password, receipt, ic, dob, gender, status, taman, address, household, occupation, ack } = formData;
 
         try {
             const res = await registerUser(email, password, receipt, {
@@ -149,28 +207,26 @@ export default function SignupScreen() {
 
             if (res.status === "success") {
                 await mmkvAsyncStorage.setItem('signupEmail', email.trim().toLowerCase());
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: "pending" as never }],
-                });
+                router.replace('/pending');
+            } else if (res.status === "pending_email_confirmation") {
+                Alert.alert(t('success'), t('pleaseCheckEmailToConfirm') || 'Please check your email to confirm your account, then sign in.');
+                navigation.goBack();
             }
             setIsLoading(false);
         } catch (error: any) {
             setIsLoading(false);
-            printLog('SignupScreen ERR', error.message)
-            Alert.alert(t('error'), error.message || t('failedCreateAccount'));
+            printLog('SignupScreen ERR', error.message);
+            Alert.alert(t('error'), t('failedCreateAccount'));
         }
     };
 
-    const updateFormData = (field: string, value: any) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const renderInput = (label: string, field: keyof typeof formData, options?: { 
+    const renderField = (field: keyof FormData, label: string, options?: {
         keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
         multiline?: boolean;
         placeholder?: string;
         secureTextEntry?: boolean;
+        returnKeyType?: 'done' | 'next';
+        onSubmitEditing?: () => void;
     }) => {
         const isSecure = options?.secureTextEntry || false;
         const showPasswordToggle = field === 'password' || field === 'confirmPassword';
@@ -178,72 +234,64 @@ export default function SignupScreen() {
         const togglePasswordVisibility = field === 'password' ? setShowPassword : setShowConfirmPassword;
 
         return (
-            <View style={styles.inputContainer}>
-                <Text style={styles.label}>{label}</Text>
-                <View style={styles.inputWrapper}>
-                    {!isSecure && (
-                        <Ionicons name="document-text-outline" size={20} color={ColorPalette.gray[400]} style={styles.inputIcon} />
-                    )}
-                    {isSecure && (
-                        <Ionicons name="lock-closed-outline" size={20} color={ColorPalette.gray[400]} style={styles.inputIcon} />
-                    )}
-                    <TextInput
-                        style={[styles.input, options?.multiline && styles.textarea]}
-                        placeholder={options?.placeholder || ''}
-                        placeholderTextColor={ColorPalette.gray[400]}
-                        value={formData[field] as string}
-                        onChangeText={(value) => updateFormData(field, value)}
-                        keyboardType={options?.keyboardType || 'default'}
-                        autoCapitalize={field === 'email' ? 'none' : 'words'}
-                        autoCorrect={false}
-                        multiline={options?.multiline}
-                        secureTextEntry={isSecure && !showPasswordValue}
-                    />
-                    {showPasswordToggle && (
-                        <TouchableOpacity
-                            style={styles.eyeButton}
-                            onPress={() => togglePasswordVisibility(!showPasswordValue)}
-                        >
-                            <Ionicons
-                                name={showPasswordValue ? 'eye-off' : 'eye'}
-                                size={20}
-                                color={ColorPalette.gray[500]}
-                            />
-                        </TouchableOpacity>
-                    )}
-                </View>
-            </View>
+            <TextInput
+                label={label}
+                value={formData[field] as string}
+                onChangeText={(value) => handleFieldChange(field, value)}
+                onBlur={() => handleFieldBlur(field)}
+                error={errors[field]}
+                placeholder={options?.placeholder || ''}
+                keyboardType={options?.keyboardType || 'default'}
+                autoCapitalize={field === 'email' ? 'none' : 'sentences'}
+                autoCorrect={false}
+                multiline={options?.multiline}
+                secureTextEntry={isSecure && !showPasswordValue}
+                returnKeyType={options?.returnKeyType}
+                onSubmitEditing={options?.onSubmitEditing}
+                rightIcon={showPasswordToggle ? (
+                    <TouchableOpacity onPress={() => togglePasswordVisibility(!showPasswordValue)}>
+                        <Ionicons
+                            name={showPasswordValue ? 'eye-off' : 'eye'}
+                            size={20}
+                            color={ColorPalette.gray[500]}
+                        />
+                    </TouchableOpacity>
+                ) : undefined}
+                containerStyle={styles.inputContainer}
+            />
         );
     };
 
-    const renderChipGroup = (label: string, field: keyof typeof formData, options: string[]) => (
+    const renderChipGroup = (label: string, field: keyof FormData, options: string[]) => (
         <View style={styles.inputContainer}>
             <Text style={styles.label}>{label}</Text>
             <View style={styles.chipsRowWrap}>
                 {options.map((opt) => (
-                    <TouchableOpacity 
-                        key={opt} 
-                        style={[styles.chip, formData[field] === opt && styles.chipSelected]} 
-                        onPress={() => updateFormData(field, opt)}
+                    <TouchableOpacity
+                        key={opt}
+                        style={[styles.chip, formData[field] === opt && styles.chipSelected]}
+                        onPress={() => handleFieldChange(field, opt)}
                     >
                         <Text style={[styles.chipText, formData[field] === opt && styles.chipTextSelected]}>{opt}</Text>
                     </TouchableOpacity>
                 ))}
             </View>
+            {errors[field] ? <Text style={styles.fieldErrorText}>{errors[field]}</Text> : null}
         </View>
     );
 
+    const stepTitles = [t('stepPersonalInfoTitle'), t('stepHouseholdTitle'), t('stepAccountPaymentTitle')];
+
     return (
         <SafeAreaView style={styles.container}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.keyboardAvoid}
-            >
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                    <Animated.View 
-                        style={styles.header}
-                        entering={FadeInDown.duration(500).springify()}
-                    >
+            <KeyboardDismissView style={styles.keyboardAvoid}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+                >
+                    <View style={styles.header}>
                         <View style={styles.logoContainer}>
                             <View style={styles.logoPlaceholder}>
                                 <Ionicons name="person-add" size={36} color={ColorPalette.white} />
@@ -251,160 +299,177 @@ export default function SignupScreen() {
                         </View>
                         <Text style={styles.title}>{t('createAccountTitle')}</Text>
                         <Text style={styles.subtitle}>{t('joinCommunity')}</Text>
-                    </Animated.View>
+                    </View>
 
-                    <Animated.View 
-                        style={styles.form}
-                        entering={FadeInUp.duration(500).delay(100).springify()}
-                    >
-                        <Card variant="elevated" padding="lg">
-                            {renderInput(t('fullNameReq'), 'name', { placeholder: t('enterFullName') })}
-                            {renderInput(t('No ic'), 'ic', { keyboardType: 'numeric', placeholder: t('enterIC') })}
-                            {renderInput(t('emailAddressReq'), 'email', { keyboardType: 'email-address', placeholder: t('enterYourEmail') })}
-                            
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.label}>{t('phoneNumber')}</Text>
-                                <View style={styles.inputWrapper}>
-                                    <Ionicons name="call-outline" size={20} color={ColorPalette.gray[400]} style={styles.inputIcon} />
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder={t('enterPhoneNumber')}
-                                        placeholderTextColor={ColorPalette.gray[400]}
-                                        value={formData.phone}
-                                        onChangeText={(value) => updateFormData('phone', value)}
-                                        keyboardType="phone-pad"
-                                    />
-                                </View>
-                                <Text style={styles.info}>{t('*sila pastikan nombor telefon ini mempunyai aplikasi Whatsapp')}</Text>
-                            </View>
+                    <StepProgress
+                        currentStep={step}
+                        totalSteps={STEP_FIELDS.length}
+                        stepLabel={stepTitles[step]}
+                        stepText={t('step')}
+                        ofText={t('of')}
+                    />
 
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.label}>{t('TARIKH LAHIR')}</Text>
-                                <TouchableOpacity
-                                    style={styles.input}
-                                    onPress={() => setShowDobPicker(true)}
-                                >
-                                    <View style={styles.datePickerContent}>
-                                        <Ionicons name="calendar-outline" size={20} color={formData.dob ? ColorPalette.gray[700] : ColorPalette.gray[400]} />
-                                        <Text style={{ color: formData.dob ? ColorPalette.gray[700] : ColorPalette.gray[400], marginLeft: Spacing.sm }}>
-                                            {formData.dob || t('DD/MM/YYYY')}
-                                        </Text>
-                                    </View>
-                                </TouchableOpacity>
-                                <DatePickerModal
-                                    visible={showDobPicker}
-                                    initialDate={dobDate || new Date(1990, 0, 1)}
-                                    mode="date"
-                                    title={t('TARIKH LAHIR')}
-                                    cancelText={t('cancel')}
-                                    confirmText={t('ok')}
-                                    onCancel={() => setShowDobPicker(false)}
-                                    onConfirm={(selectedDate) => {
-                                        setDobDate(selectedDate);
-                                        const dd = String(selectedDate.getDate()).padStart(2, '0');
-                                        const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                                        const yyyy = selectedDate.getFullYear();
-                                        updateFormData('dob', `${dd}/${mm}/${yyyy}`);
-                                        setShowDobPicker(false);
-                                    }}
-                                />
-                            </View>
+                    <View style={styles.form}>
+                        {step === 0 && (
+                            <Card variant="elevated" padding="lg">
+                                {renderField('name', t('fullNameReq'), { placeholder: t('enterFullName') })}
+                                {renderField('ic', t('icNo'), { keyboardType: 'numeric', placeholder: t('enterYourIcNo') })}
+                                {renderField('email', t('emailAddressReq'), { keyboardType: 'email-address', placeholder: t('enterYourEmail') })}
+                                {renderField('phone', t('phoneNumber'), { keyboardType: 'phone-pad', placeholder: t('enterPhoneNumber') })}
+                                <Text style={styles.info}>{t('phoneWhatsappHint')}</Text>
 
-                            {renderChipGroup(t('JANTINA'), 'gender', ['Lelaki', 'Perempuan'])}
-                            {renderChipGroup(t('Status'), 'status', ['Bujang', 'Berkahwin', 'Duda', 'Janda', 'Balu', 'Lain-lain'])}
-                            {renderChipGroup(t('TAMAN PERUMAHAN'), 'taman', ['Kita Ria', 'Kita Bayu', 'Kita Impian', 'Kita Sejati', 'Kita Mesra', 'Kita Harmoni', 'Kita Mekar', 'Kita Bestari'])}
-                            
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.label}>{t('ALAMAT PENUH')}</Text>
-                                <View style={styles.inputWrapper}>
-                                    <TextInput
-                                        style={[styles.input, styles.textarea]}
-                                        placeholder={t('Masukkan alamat penuh anda')}
-                                        placeholderTextColor={ColorPalette.gray[400]}
-                                        value={formData.address}
-                                        onChangeText={(value) => updateFormData('address', value)}
-                                        multiline
-                                        numberOfLines={3}
-                                        textAlignVertical="top"
-                                    />
-                                </View>
-                            </View>
-
-                            {renderChipGroup(t('BILANGAN AHLI RUMAH'), 'household', ['1 - 2 orang', '3 - 5 orang', 'Lebih dari 5 orang'])}
-
-                            {renderInput(t('PEKERJAAN'), 'occupation', { placeholder: t('Contoh: Jurutera, Peniaga, Pelajar') })}
-                            
-                            {renderInput(t('passwordReq'), 'password', { secureTextEntry: true, placeholder: t('createPassword') })}
-                            {renderInput(t('confirmPasswordReq'), 'confirmPassword', { secureTextEntry: true, placeholder: t('confirmYourPassword') })}
-                        </Card>
-
-                        <AnimatedView entering={FadeInUp.duration(400).delay(200)}>
-                            <Card variant="outlined" padding="md" style={styles.paymentCard}>
-                                <View style={styles.paymentHeader}>
-                                    <Ionicons name="wallet" size={24} color={ColorPalette.tertiary[500]} />
-                                    <Text style={styles.paymentTitle}>{t('payRM10')}</Text>
-                                </View>
-                                <Text style={styles.paymentText}>{t('regFee')}</Text>
-                                <Text style={styles.paymentText}>{t('memberFee')}</Text>
-                                <Text style={styles.accountText}>{t('makePaymentTo')}</Text>
-                            </Card>
-                        </AnimatedView>
-
-                        <AnimatedView entering={FadeInUp.duration(400).delay(300)}>
-                            <Card variant="elevated" padding="md">
-                                <Text style={styles.uploadLabel}>{t('uploadPaymentScreenshot')}</Text>
-                                {imageUri ? (
-                                    <View style={styles.imagePreviewContainer}>
-                                        <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-                                        <TouchableOpacity style={styles.removeImageBtn} onPress={() => { setImageUri(null); updateFormData('receipt', ''); }}>
-                                            <Ionicons name="close-circle" size={24} color={ColorPalette.error[500]} />
-                                        </TouchableOpacity>
-                                    </View>
-                                ) : (
-                                    <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
-                                        <Ionicons name="cloud-upload-outline" size={32} color={ColorPalette.primary[500]} />
-                                        <Text style={styles.uploadText}>{t('pickScreenshot')}</Text>
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.label}>{t('dobLabel')}</Text>
+                                    <TouchableOpacity
+                                        style={[styles.input, errors.dob && styles.inputError]}
+                                        onPress={() => setShowDobPicker(true)}
+                                    >
+                                        <View style={styles.datePickerContent}>
+                                            <Ionicons name="calendar-outline" size={20} color={formData.dob ? ColorPalette.gray[700] : ColorPalette.gray[400]} />
+                                            <Text style={{ color: formData.dob ? ColorPalette.gray[700] : ColorPalette.gray[400], marginLeft: Spacing.sm }}>
+                                                {formData.dob || t('ddmmyyyyPlaceholder')}
+                                            </Text>
+                                        </View>
                                     </TouchableOpacity>
-                                )}
-                            </Card>
-                        </AnimatedView>
-
-                        <AnimatedView entering={FadeInUp.duration(400).delay(400)}>
-                            <TouchableOpacity 
-                                onPress={() => updateFormData('ack', !formData.ack)} 
-                                style={styles.ackRow}
-                            >
-                                <View style={[styles.checkbox, formData.ack && styles.checkboxChecked]}>
-                                    {formData.ack && <Ionicons name="checkmark" size={16} color={ColorPalette.white} />}
+                                    {errors.dob ? <Text style={styles.fieldErrorText}>{errors.dob}</Text> : null}
+                                    <DatePickerModal
+                                        visible={showDobPicker}
+                                        initialDate={dobDate || new Date(1990, 0, 1)}
+                                        mode="date"
+                                        title={t('dobLabel')}
+                                        cancelText={t('cancel')}
+                                        confirmText={t('ok')}
+                                        onCancel={() => setShowDobPicker(false)}
+                                        onConfirm={(selectedDate) => {
+                                            setDobDate(selectedDate);
+                                            const dd = String(selectedDate.getDate()).padStart(2, '0');
+                                            const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                                            const yyyy = selectedDate.getFullYear();
+                                            handleFieldChange('dob', `${dd}/${mm}/${yyyy}`);
+                                            setShowDobPicker(false);
+                                        }}
+                                    />
                                 </View>
-                                <Text style={styles.ackText}>Saya mengaku bahawa segala keterangan yang diberikan adalah benar, dan saya akan mematuhi semua syarat serta peraturan persatuan, serta bersetuju bahawa data peribadi saya hanya untuk kegunaan Jawatankuasa Persatuan Komuniti Kita Cybersouth (PKKC) sahaja. Sebarang penggunaan lain tanpa kebenaran saya adalah tidak sah.</Text>
-                            </TouchableOpacity>
-                        </AnimatedView>
 
-                        <AnimatedView entering={FadeInUp.duration(400).delay(500)}>
-                            <Button 
-                                variant="primary" 
-                                size="lg" 
-                                fullWidth 
-                                loading={isLoading}
-                                onPress={handleSignup}
-                            >
-                                {isLoading ? t('creatingAccount') : t('createAccount')}
-                            </Button>
-                        </AnimatedView>
+                                {renderChipGroup(t('genderLabel'), 'gender', ['Lelaki', 'Perempuan'])}
+                            </Card>
+                        )}
 
-                        <Animated.View 
-                            style={styles.footer}
-                            entering={FadeInUp.duration(400).delay(600)}
-                        >
+                        {step === 1 && (
+                            <Card variant="elevated" padding="lg">
+                                {renderChipGroup(t('maritalStatusLabel'), 'status', ['Bujang', 'Berkahwin', 'Duda', 'Janda', 'Balu', 'Lain-lain'])}
+                                {renderChipGroup(t('tamanLabel'), 'taman', ['Kita Ria', 'Kita Bayu', 'Kita Impian', 'Kita Sejati', 'Kita Mesra', 'Kita Harmoni', 'Kita Mekar', 'Kita Bestari'])}
+                                {renderField('address', t('addressLabel'), { multiline: true, placeholder: t('addressPlaceholder') })}
+                                {renderChipGroup(t('householdLabel'), 'household', ['1 - 2 orang', '3 - 5 orang', 'Lebih dari 5 orang'])}
+                                {renderField('occupation', t('occupationLabel'), { placeholder: t('occupationPlaceholder') })}
+                            </Card>
+                        )}
+
+                        {step === 2 && (
+                            <>
+                                <Card variant="elevated" padding="lg">
+                                    {renderField('password', t('passwordReq'), { secureTextEntry: true, placeholder: t('createPassword') })}
+                                    {renderField('confirmPassword', t('confirmPasswordReq'), {
+                                        secureTextEntry: true,
+                                        placeholder: t('confirmYourPassword'),
+                                        returnKeyType: 'done',
+                                        onSubmitEditing: () => Keyboard.dismiss(),
+                                    })}
+                                </Card>
+
+                                <View>
+                                    <Card variant="outlined" padding="md" style={styles.paymentCard}>
+                                        <View style={styles.paymentHeader}>
+                                            <Ionicons name="wallet" size={24} color={ColorPalette.tertiary[500]} />
+                                            <Text style={styles.paymentTitle}>{t('payRM10')}</Text>
+                                        </View>
+                                        <Text style={styles.paymentText}>{t('regFee')}</Text>
+                                        <Text style={styles.paymentText}>{t('memberFee')}</Text>
+                                        <Text style={styles.accountText}>{t('makePaymentTo')}</Text>
+                                    </Card>
+                                </View>
+
+                                <View>
+                                    <Card variant="elevated" padding="md">
+                                        <Text style={styles.uploadLabel}>{t('uploadPaymentScreenshot')}</Text>
+                                        {imageUri ? (
+                                            <View style={styles.imagePreviewContainer}>
+                                                <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+                                                <TouchableOpacity style={styles.removeImageBtn} onPress={() => { setImageUri(null); updateFormData('receipt', ''); }}>
+                                                    <Ionicons name="close-circle" size={24} color={ColorPalette.error[500]} />
+                                                </TouchableOpacity>
+                                            </View>
+                                        ) : (
+                                            <View style={styles.uploadRow}>
+                                                <TouchableOpacity style={[styles.uploadButton, styles.uploadButtonHalf]} onPress={requestCameraImage}>
+                                                    <Ionicons name="camera-outline" size={28} color={ColorPalette.primary[500]} />
+                                                    <Text style={styles.uploadText}>{t('takePhoto')}</Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity style={[styles.uploadButton, styles.uploadButtonHalf]} onPress={requestGalleryImage}>
+                                                    <Ionicons name="cloud-upload-outline" size={28} color={ColorPalette.primary[500]} />
+                                                    <Text style={styles.uploadText}>{t('chooseFromGallery')}</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        )}
+                                    </Card>
+                                </View>
+
+                                <View>
+                                    <TouchableOpacity
+                                        onPress={() => updateFormData('ack', !formData.ack)}
+                                        style={styles.ackRow}
+                                    >
+                                        <View style={[styles.checkbox, formData.ack && styles.checkboxChecked]}>
+                                            {formData.ack && <Ionicons name="checkmark" size={16} color={ColorPalette.white} />}
+                                        </View>
+                                        <Text style={styles.ackText}>{t('ackAgreementText')}</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </>
+                        )}
+
+                        <View style={styles.navRow}>
+                            {step > 0 && (
+                                <Button
+                                    variant="secondary"
+                                    size="lg"
+                                    onPress={goBack}
+                                    style={styles.navButton}
+                                >
+                                    {t('back')}
+                                </Button>
+                            )}
+                            {step < STEP_FIELDS.length - 1 ? (
+                                <Button
+                                    variant="primary"
+                                    size="lg"
+                                    onPress={goNext}
+                                    style={styles.navButton}
+                                >
+                                    {t('next')}
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant="primary"
+                                    size="lg"
+                                    loading={isLoading}
+                                    onPress={handleSignup}
+                                    style={styles.navButton}
+                                >
+                                    {isLoading ? t('creatingAccount') : t('createAccount')}
+                                </Button>
+                            )}
+                        </View>
+
+                        <View style={styles.footer}>
                             <Text style={styles.footerText}>{t('alreadyHaveAccount')}</Text>
                             <TouchableOpacity onPress={() => navigation.goBack()}>
                                 <Text style={styles.linkText}>{t('signInLower')}</Text>
                             </TouchableOpacity>
-                        </Animated.View>
-                    </Animated.View>
+                        </View>
+                    </View>
                 </ScrollView>
-            </KeyboardAvoidingView>
+            </KeyboardDismissView>
         </SafeAreaView>
     );
 }
@@ -464,37 +529,31 @@ const styles = StyleSheet.create({
     info: {
         fontSize: Typography.fontSize.xs,
         color: ColorPalette.gray[500],
+        marginTop: -Spacing.sm,
+        marginBottom: Spacing.md,
+    },
+    fieldErrorText: {
+        fontSize: Typography.fontSize.xs,
+        color: ColorPalette.error[500],
         marginTop: Spacing.xs,
     },
-    inputWrapper: {
+    input: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: ColorPalette.white,
         borderRadius: BorderRadius.lg,
         borderWidth: 1,
         borderColor: ColorPalette.gray[200],
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.md,
         ...Shadow.sm,
     },
-    inputIcon: {
-        paddingHorizontal: Spacing.md,
-    },
-    input: {
-        flex: 1,
-        paddingVertical: Spacing.md,
-        paddingRight: Spacing.md,
-        fontSize: Typography.fontSize.base,
-        color: ColorPalette.gray[900],
-    },
-    textarea: {
-        minHeight: 80,
-        textAlignVertical: 'top',
+    inputError: {
+        borderColor: ColorPalette.error[500],
     },
     datePickerContent: {
         flexDirection: 'row',
         alignItems: 'center',
-    },
-    eyeButton: {
-        padding: Spacing.md,
     },
     chipsRowWrap: {
         flexDirection: 'row',
@@ -551,6 +610,10 @@ const styles = StyleSheet.create({
         color: ColorPalette.gray[700],
         marginBottom: Spacing.md,
     },
+    uploadRow: {
+        flexDirection: 'row',
+        gap: Spacing.sm,
+    },
     imagePreviewContainer: {
         position: 'relative',
         alignItems: 'center',
@@ -575,10 +638,14 @@ const styles = StyleSheet.create({
         borderRadius: BorderRadius.lg,
         backgroundColor: ColorPalette.primary[50],
     },
+    uploadButtonHalf: {
+        flex: 1,
+    },
     uploadText: {
         fontSize: Typography.fontSize.sm,
         color: ColorPalette.primary[500],
         marginTop: Spacing.sm,
+        textAlign: 'center',
     },
     ackRow: {
         flexDirection: 'row',
@@ -606,6 +673,14 @@ const styles = StyleSheet.create({
         color: ColorPalette.gray[600],
         fontSize: Typography.fontSize.xs,
         lineHeight: 18,
+    },
+    navRow: {
+        flexDirection: 'row',
+        gap: Spacing.sm,
+        marginTop: Spacing.md,
+    },
+    navButton: {
+        flex: 1,
     },
     footer: {
         flexDirection: 'row',

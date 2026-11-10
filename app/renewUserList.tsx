@@ -1,15 +1,21 @@
+import { supabase } from "@/src/config/supabase";
+import { KeyboardDismissView } from "@/src/components/KeyboardDismissView";
+import { isStaffRole, NotAuthorized } from "@/src/components/NotAuthorized";
+import { useAuth } from "@/src/hooks/useAuth";
 import { useTranslation } from "@/src/i18n";
 import { getApprovedRenewals } from "@/src/services/renewMembership";
+import { escapeHtml } from "@/src/utils/escapeHtml";
 import dayjs from "dayjs";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import React, { useEffect } from "react";
-import { Alert, FlatList, Image, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, FlatList, Image, Keyboard, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function RenewUserListScreen() {
     const [renewals, setRenewals] = React.useState<any[]>([]);
     const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
     const [searchQuery, setSearchQuery] = React.useState<string>("");
+    const { userProfile } = useAuth();
     const { t } = useTranslation();
 
     const fetchRenewals = async () => {
@@ -25,8 +31,17 @@ export default function RenewUserListScreen() {
         fetchRenewals()
     }, []);
 
+    const openPreview = async (path: string) => {
+        const { data, error } = await supabase.storage.from("receipts").createSignedUrl(path, 60 * 5);
+        if (error || !data) {
+            Alert.alert(t('error') || 'Error', error?.message || 'Failed to load attachment');
+            return;
+        }
+        setPreviewUrl(data.signedUrl);
+    };
+
     const buildApprovedHtml = (items: any[]) => {
-        const rows = items.map((it, idx) => `<tr><td style="padding:8px;border:1px solid #ddd;">${idx + 1}</td><td style="padding:8px;border:1px solid #ddd;">${it.userFullName || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.userEmail || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.approvedAtMillis ? new Date(it.approvedAtMillis).toLocaleString() : "-"}</td></tr>`).join("");
+        const rows = items.map((it, idx) => `<tr><td style="padding:8px;border:1px solid #ddd;">${idx + 1}</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(it.userFullName) || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(it.userEmail) || "-"}</td><td style="padding:8px;border:1px solid #ddd;">${it.approvedAtMillis ? new Date(it.approvedAtMillis).toLocaleString() : "-"}</td></tr>`).join("");
         return `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>Total Approved Renewal Users</title></head><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif;">
             <h2 style="text-align:center;">${'Total Approved Renewal Users'}</h2>
             <p>Total: ${items.length}</p>
@@ -64,13 +79,19 @@ export default function RenewUserListScreen() {
         }
     };
 
+    if (!isStaffRole(userProfile?.role)) {
+        return <NotAuthorized />;
+    }
+
     return (
-        <View style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>
+        <KeyboardDismissView style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>
             <TextInput
                 placeholder={t('enterFullName')}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 style={{ marginBottom: 12, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 8 }}
+                returnKeyType="done"
+                onSubmitEditing={() => Keyboard.dismiss()}
             />
             {/* In case the header button isn't visible on some devices, also show an in-page action here */}
             <View style={{ alignSelf: 'flex-end', marginBottom: 12 }}>
@@ -86,6 +107,7 @@ export default function RenewUserListScreen() {
                 <Text>{t('noPendingRenewals')}</Text>
             )}
             <FlatList
+                keyboardShouldPersistTaps="handled"
                 data={renewals.filter(u => {
                     const q = searchQuery.trim().toLowerCase();
                     if (!q) return true;
@@ -99,7 +121,7 @@ export default function RenewUserListScreen() {
                         <Text>{t('submitted')}: {item.approvedAtMillis ? dayjs(item.approvedAtMillis).format('DD MMM YYYY HH:mm a') : (item.submittedAtMillis ? dayjs(item.submittedAtMillis).format('DD MMM YYYY HH:mm a') : item.submittedAt)}</Text>
 
                         {(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl) ? (
-                            <TouchableOpacity onPress={() => setPreviewUrl(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl)} style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#f1f5f9', borderRadius: 6 }}>
+                            <TouchableOpacity onPress={() => openPreview(item.slipBayaranUrl || item.certificateUrl || item.screenshotUrl)} style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#f1f5f9', borderRadius: 6 }}>
                                 <Text style={{ color: '#0f172a' }}>{t('viewAttachment')}</Text>
                             </TouchableOpacity>
                         ) : null}
@@ -119,6 +141,6 @@ export default function RenewUserListScreen() {
                     ) : null}
                 </View>
             </Modal>
-        </View>
+        </KeyboardDismissView>
     );
 }

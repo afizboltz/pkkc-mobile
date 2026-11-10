@@ -1,14 +1,15 @@
 import { useAuth } from '@/src/hooks/useAuth';
-import { loginWithIcNo } from '@/src/services/auth';
+import { KeyboardDismissView } from '@/src/components/KeyboardDismissView';
+import { getAppSetting } from '@/src/services/appSettings';
+import { getPostAuthRouteName, getUserProfile, loginWithIcNo } from '@/src/services/auth';
 import { printLog } from '@/src/utils/log';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from 'expo-router';
-import React, { useState } from 'react';
+import { router, useNavigation } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -17,8 +18,6 @@ import {
   View,
 } from 'react-native';
 import Animated, {
-  FadeInDown,
-  FadeInUp,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -27,7 +26,6 @@ import Animated, {
 import { useTranslation } from '@/src/i18n';
 import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from '@/src/theme';
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 export default function LoginScreen() {
   const { loading } = useAuth();
@@ -37,7 +35,12 @@ export default function LoginScreen() {
   const [icNo, setIcNo] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [bootstrapEnabled, setBootstrapEnabled] = useState(false);
   const { t } = useTranslation();
+
+  useEffect(() => {
+    getAppSetting<boolean>('bootstrap_verify_enabled', false).then(setBootstrapEnabled);
+  }, []);
 
   const buttonScale = useSharedValue(1);
 
@@ -54,10 +57,11 @@ export default function LoginScreen() {
     try {
       const res = await loginWithIcNo(icNo, password);
       printLog('LoginScreen', res);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "dashboard" } as any],
-      })
+      // Route by the account's real status (pending/active/rejected), not straight to the
+      // dashboard — AuthContext's own background hydration from the SIGNED_IN event isn't
+      // guaranteed to have landed yet, so this fetches the profile directly to decide.
+      const profile = res.user ? await getUserProfile(res.user.id) : null;
+      router.replace(`/${getPostAuthRouteName(profile)}` as any);
     } catch (error: any) {
       Alert.alert(t('error'), t('failedSignIn'));
     }
@@ -73,15 +77,9 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoid}
-      >
+      <KeyboardDismissView style={styles.keyboardAvoid}>
         <View style={styles.content}>
-          <Animated.View 
-            style={styles.header}
-            entering={FadeInDown.duration(600).springify()}
-          >
+          <View style={styles.header}>
             <View style={styles.logoContainer}>
               <View style={styles.logoPlaceholder}>
                 <Ionicons name="people" size={48} color={ColorPalette.white} />
@@ -89,12 +87,23 @@ export default function LoginScreen() {
             </View>
             <Text style={styles.title}>{t('welcomeBack')}</Text>
             <Text style={styles.subtitle}>{t('signInToAccount')}</Text>
-          </Animated.View>
+          </View>
 
-          <Animated.View 
-            style={styles.form}
-            entering={FadeInUp.duration(600).delay(200).springify()}
-          >
+          <View style={styles.form}>
+            {bootstrapEnabled && (
+              <TouchableOpacity
+                style={styles.bootstrapCta}
+                onPress={() => navigation.navigate('verifyAndSetPassword' as never)}
+              >
+                <Ionicons name="key-outline" size={22} color={ColorPalette.primary[600]} />
+                <View style={styles.bootstrapCtaTextContainer}>
+                  <Text style={styles.bootstrapCtaTitle}>{t('bootstrapCtaTitle')}</Text>
+                  <Text style={styles.bootstrapCtaSubtitle}>{t('bootstrapCtaSubtitle')}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={ColorPalette.primary[500]} />
+              </TouchableOpacity>
+            )}
+
             <View style={styles.inputContainer}>
               <Text style={styles.label}>{t('icNo')}</Text>
               <View style={styles.inputWrapper}>
@@ -123,6 +132,8 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  returnKeyType="done"
+                  onSubmitEditing={() => Keyboard.dismiss()}
                 />
                 <TouchableOpacity
                   style={styles.eyeButton}
@@ -137,14 +148,20 @@ export default function LoginScreen() {
               </View>
             </View>
 
+            <TouchableOpacity
+              style={styles.forgotPasswordLink}
+              onPress={() => navigation.navigate('verifyAndSetPassword' as never)}
+            >
+              <Text style={styles.forgotPasswordText}>{t('forgotPassword')}</Text>
+            </TouchableOpacity>
+
             <Animated.View style={buttonAnimatedStyle}>
-              <AnimatedTouchableOpacity
+              <TouchableOpacity
                 style={[styles.loginButton, loading && styles.loginButtonDisabled]}
                 onPress={handleLogin}
                 onPressIn={handleButtonPressIn}
                 onPressOut={handleButtonPressOut}
                 disabled={loading}
-                entering={FadeInUp.duration(400).delay(400)}
               >
                 {loading ? (
                   <ActivityIndicator color={ColorPalette.white} />
@@ -154,21 +171,18 @@ export default function LoginScreen() {
                     <Ionicons name="arrow-forward" size={20} color={ColorPalette.white} />
                   </>
                 )}
-              </AnimatedTouchableOpacity>
+              </TouchableOpacity>
             </Animated.View>
 
-            <Animated.View 
-              style={styles.footer}
-              entering={FadeInUp.duration(400).delay(500)}
-            >
+            <View style={styles.footer}>
               <Text style={styles.footerText}>{t('dontHaveAccount')}</Text>
               <TouchableOpacity onPress={() => { navigation.navigate('signup' as never) }}>
                 <Text style={styles.linkText}>{t('signUp')}</Text>
               </TouchableOpacity>
-            </Animated.View>
-          </Animated.View>
+            </View>
+          </View>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardDismissView>
     </SafeAreaView>
   );
 }
@@ -254,6 +268,39 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     padding: Spacing.md,
+  },
+  bootstrapCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: ColorPalette.primary[50],
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: ColorPalette.primary[100],
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  bootstrapCtaTextContainer: {
+    flex: 1,
+  },
+  bootstrapCtaTitle: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: ColorPalette.primary[700],
+  },
+  bootstrapCtaSubtitle: {
+    fontSize: Typography.fontSize.xs,
+    color: ColorPalette.primary[600],
+    marginTop: 2,
+  },
+  forgotPasswordLink: {
+    alignSelf: 'flex-end',
+    marginBottom: Spacing.sm,
+  },
+  forgotPasswordText: {
+    fontSize: Typography.fontSize.sm,
+    color: ColorPalette.primary[500],
+    fontWeight: Typography.fontWeight.medium,
   },
   loginButton: {
     backgroundColor: ColorPalette.primary[500],

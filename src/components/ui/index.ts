@@ -12,6 +12,9 @@ export type { CardProps } from './Card';
 export { TextInput } from './TextInput';
 export type { TextInputProps } from './TextInput';
 
+export { StepProgress } from './StepProgress';
+export type { StepProgressProps } from './StepProgress';
+
 // Re-export existing components for consistency
 export { ThemedText } from '../ThemedText';
 export type { ThemedTextProps } from '../ThemedText';

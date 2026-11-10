@@ -2,7 +2,6 @@ import { useTranslation } from '@/src/i18n';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
 import { Alert, Dimensions, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Card } from '@/src/components/ui/Card';
 import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from '@/src/theme';
 
@@ -65,15 +64,15 @@ export default function DirectoryScreen() {
     return (
         <View style={styles.container}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                <Animated.View style={styles.header} entering={FadeInDown.duration(500).springify()}>
+                <View style={styles.header}>
                     <View style={styles.headerIconContainer}>
                         <MaterialIcons name="contact-phone" size={32} color={ColorPalette.white} />
                     </View>
                     <Text style={styles.headerTitle}>Direktori</Text>
                     <Text style={styles.headerSubtitle}>Aduan & Kecemasan</Text>
-                </Animated.View>
+                </View>
 
-                <Animated.View style={styles.section} entering={FadeInUp.duration(500).delay(100).springify()}>
+                <View style={styles.section}>
                     <Card variant="elevated" padding="md">
                         <View style={styles.sectionHeader}>
                             <View style={[styles.sectionIcon, { backgroundColor: `${ColorPalette.warning[500]}15` }]}>
@@ -85,8 +84,8 @@ export default function DirectoryScreen() {
                             </View>
                         </View>
                         <View style={styles.complaintGrid}>
-                            {complaintCategories.map((complaint, index) => (
-                                <Animated.View key={complaint.id} entering={FadeInUp.duration(400).delay(200 + index * 50)}>
+                            {complaintCategories.map((complaint) => (
+                                <View key={complaint.id}>
                                     <TouchableOpacity style={styles.complaintCard} onPress={() => handleComplaintPress(complaint)} activeOpacity={0.7}>
                                         <View style={styles.complaintIconContainer}>
                                             <MaterialIcons name="description" size={24} color={ColorPalette.primary[500]} />
@@ -95,13 +94,13 @@ export default function DirectoryScreen() {
                                         <Text style={styles.complaintDescription} numberOfLines={2}>{complaint.description}</Text>
                                         <Text style={styles.complaintIncharge} numberOfLines={1}>PIC: {complaint.incharge}</Text>
                                     </TouchableOpacity>
-                                </Animated.View>
+                                </View>
                             ))}
                         </View>
                     </Card>
-                </Animated.View>
+                </View>
 
-                <Animated.View style={styles.section} entering={FadeInUp.duration(500).delay(300).springify()}>
+                <View style={styles.section}>
                     <Card variant="elevated" padding="md">
                         <View style={styles.sectionHeader}>
                             <View style={[styles.sectionIcon, { backgroundColor: `${ColorPalette.error[500]}15` }]}>
@@ -113,8 +112,8 @@ export default function DirectoryScreen() {
                             </View>
                         </View>
                         <View style={styles.contactsList}>
-                            {emergencyContacts.map((contact, index) => (
-                                <Animated.View key={contact.id} entering={FadeInUp.duration(400).delay(400 + index * 50)}>
+                            {emergencyContacts.map((contact) => (
+                                <View key={contact.id}>
                                     <View style={[styles.contactCard, contact.isEmergency && styles.emergencyCard]}>
                                         <View style={styles.contactInfo}>
                                             <View style={styles.contactHeader}>
@@ -131,11 +130,11 @@ export default function DirectoryScreen() {
                                             </View>
                                         </View>
                                     </View>
-                                </Animated.View>
+                                </View>
                             ))}
                         </View>
                     </Card>
-                </Animated.View>
+                </View>
                 <View style={styles.bottomSpacer} />
             </ScrollView>
         </View>

@@ -12,9 +12,9 @@ const getAppName = () => {
 };
 
 const getBundleId = () => {
-    if (IS_PRODUCTION) return 'my.ppkc';
-    if (IS_PREPRODUCTION) return 'my.ppkc.ppd';
-    return 'my.ppkc.stg';
+    if (IS_PRODUCTION) return 'my.org.pkkc';
+    if (IS_PREPRODUCTION) return 'my.org.pkkc.ppd';
+    return 'my.org.pkkc.stg';
 };
 console.log("Using environment:", process.env.EXPO_PUBLIC_ENV);
 console.log("App name:", getAppName());
@@ -58,6 +58,7 @@ export default {
                 }
             ],
             "expo-font",
+            "expo-notifications",
         ],
         experiments: {
             typedRoutes: true,

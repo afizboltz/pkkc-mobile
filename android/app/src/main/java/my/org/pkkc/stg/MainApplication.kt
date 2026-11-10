@@ -1,4 +1,4 @@
-package my.ppkc.stg
+package my.org.pkkc.stg
 
 import android.app.Application
 import android.content.res.Configuration

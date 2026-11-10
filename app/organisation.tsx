@@ -3,7 +3,6 @@ import { Stack } from 'expo-router';
 import React from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Card } from '@/src/components/ui/Card';
 import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from '@/src/theme';
 
@@ -33,7 +32,7 @@ const committeeMembers: CommitteeMember[] = [
     { id: 14, name: 'ABDUL RAHMAN BIN MUSTAPHA', position: 'AJK PKKC', level: 4 },
 ];
 
-const OrganizationCard: React.FC<{ member: CommitteeMember; index: number }> = ({ member, index }) => {
+const OrganizationCard: React.FC<{ member: CommitteeMember; index: number }> = ({ member }) => {
     const getCardStyle = () => {
         switch (member.level) {
             case 1:
@@ -50,12 +49,10 @@ const OrganizationCard: React.FC<{ member: CommitteeMember; index: number }> = (
     };
 
     return (
-        <Animated.View entering={FadeInDown.duration(400).delay(index * 50)}>
-            <View style={[styles.card, getCardStyle()]}>
-                <Text style={styles.position}>{member.position}</Text>
-                <Text style={styles.name}>{member.name}</Text>
-            </View>
-        </Animated.View>
+        <View style={[styles.card, getCardStyle()]}>
+            <Text style={styles.position}>{member.position}</Text>
+            <Text style={styles.name}>{member.name}</Text>
+        </View>
     );
 };
 
@@ -75,78 +72,67 @@ export default function OrganisationScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                <Animated.View 
-                    style={styles.headerSection}
-                    entering={FadeInDown.duration(500)}
-                >
+                <View style={styles.headerSection}>
                     <Text style={styles.headerTitle}>Jawatankuasa PKKC</Text>
                     <Text style={styles.headerSubtitle}>Persatuan Komuniti Kita Cybersouth</Text>
-                </Animated.View>
+                </View>
 
                 <View style={styles.chartContainer}>
-                    <Animated.View entering={FadeInDown.duration(400).delay(100)}>
-                        <View style={styles.levelContainer}>
-                            <OrganizationCard member={committeeMembers[0]} index={0} />
-                        </View>
-                    </Animated.View>
+                    <View style={styles.levelContainer}>
+                        <OrganizationCard member={committeeMembers[0]} index={0} />
+                    </View>
 
                     <ConnectorLine />
 
-                    <Animated.View entering={FadeInDown.duration(400).delay(150)}>
-                        <View style={styles.levelContainer}>
-                            <OrganizationCard member={committeeMembers[1]} index={1} />
-                        </View>
-                    </Animated.View>
+                    <View style={styles.levelContainer}>
+                        <OrganizationCard member={committeeMembers[1]} index={1} />
+                    </View>
 
                     <ConnectorLine />
 
-                    <Animated.View entering={FadeInDown.duration(400).delay(200)}>
-                        <View style={styles.managementLevel}>
-                            <View style={styles.managementRow}>
-                                <OrganizationCard member={committeeMembers[2]} index={2} />
-                            </View>
-                            <View style={styles.managementRow}>
-                                <OrganizationCard member={committeeMembers[3]} index={3} />
-                            </View>
-                            <View style={styles.managementRow}>
-                                <OrganizationCard member={committeeMembers[4]} index={4} />
-                            </View>
+                    <View style={styles.managementLevel}>
+                        <View style={styles.managementRow}>
+                            <OrganizationCard member={committeeMembers[2]} index={2} />
                         </View>
-                    </Animated.View>
+                        <View style={styles.managementRow}>
+                            <OrganizationCard member={committeeMembers[3]} index={3} />
+                        </View>
+                        <View style={styles.managementRow}>
+                            <OrganizationCard member={committeeMembers[4]} index={4} />
+                        </View>
+                    </View>
 
                     <ConnectorLine />
 
-                    <Animated.View entering={FadeInDown.duration(400).delay(300)}>
-                        <View style={styles.membersLevel}>
-                            <View style={styles.membersRow}>
-                                <OrganizationCard member={committeeMembers[5]} index={5} />
-                            </View>
-                            <View style={styles.membersRow}>
-                                <OrganizationCard member={committeeMembers[6]} index={6} />
-                            </View>
-                            <View style={styles.membersRow}>
-                                <OrganizationCard member={committeeMembers[7]} index={7} />
-                            </View>
-                            <View style={styles.membersRow}>
-                                <OrganizationCard member={committeeMembers[8]} index={8} />
-                            </View>
-                            <View style={styles.membersRow}>
-                                <OrganizationCard member={committeeMembers[9]} index={9} />
-                            </View>
-                            <View style={styles.membersRow}>
-                                <OrganizationCard member={committeeMembers[10]} index={10} />
-                            </View>
-                            <View style={styles.membersRow}>
-                                <OrganizationCard member={committeeMembers[11]} index={11} />
-                            </View>
-                            <View style={styles.membersRow}>
-                                <OrganizationCard member={committeeMembers[12]} index={12} />
-                            </View>
-                            <View style={styles.membersRow}>
-                                <OrganizationCard member={committeeMembers[13]} index={13} />
-                            </View>
+                    <View style={styles.membersLevel}>
+                        <View style={styles.membersRow}>
+                            <OrganizationCard member={committeeMembers[5]} index={5} />
                         </View>
-                    </Animated.View>
+                        <View style={styles.membersRow}>
+                            <OrganizationCard member={committeeMembers[6]} index={6} />
+                        </View>
+                        <View style={styles.membersRow}>
+                            <OrganizationCard member={committeeMembers[7]} index={7} />
+                        </View>
+                        <View style={styles.membersRow}>
+                            <OrganizationCard member={committeeMembers[8]} index={8} />
+                        </View>
+                        <View style={styles.membersRow}>
+                            <OrganizationCard member={committeeMembers[9]} index={9} />
+                        </View>
+                        <View style={styles.membersRow}>
+                            <OrganizationCard member={committeeMembers[10]} index={10} />
+                        </View>
+                        <View style={styles.membersRow}>
+                            <OrganizationCard member={committeeMembers[11]} index={11} />
+                        </View>
+                        <View style={styles.membersRow}>
+                            <OrganizationCard member={committeeMembers[12]} index={12} />
+                        </View>
+                        <View style={styles.membersRow}>
+                            <OrganizationCard member={committeeMembers[13]} index={13} />
+                        </View>
+                    </View>
                 </View>
             </ScrollView>
         </SafeAreaView>

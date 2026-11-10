@@ -11,6 +11,16 @@ platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
 install! 'cocoapods',
   :deterministic_uuids => false
 
+# Map the "Prd" build configurations (added for the PKKCPRD scheme) onto the
+# debug/release config templates so Pods.xcodeproj's own targets get matching
+# Debug-Prd/Release-Prd configurations too, instead of Xcode silently falling
+# back to a default when building the PKKCPRD scheme.
+project 'PKKCSTG.xcodeproj',
+  'Debug' => :debug,
+  'Release' => :release,
+  'Debug-Prd' => :debug,
+  'Release-Prd' => :release
+
 prepare_react_native_project!
 
 target 'PKKCSTG' do

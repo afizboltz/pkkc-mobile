@@ -41,7 +41,7 @@ export interface ErrorReport {
 }
 
 // Enhanced logging utility
-export const printLog = (title: string, message?: string | object | boolean, level: LogLevel = LogLevel.INFO) => {
+export const printLog = (title: string, message?: string | object | boolean | null, level: LogLevel = LogLevel.INFO) => {
     if (__DEV__) {
         const timestamp = new Date().toISOString();
         const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${title}: ${JSON.stringify(message, null, 3)}`;

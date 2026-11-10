@@ -1,15 +1,19 @@
-import { auth } from "@/src/config/firebase";
+import { supabase } from "@/src/config/supabase";
+import { KeyboardDismissView } from "@/src/components/KeyboardDismissView";
+import { isStaffRole, NotAuthorized } from "@/src/components/NotAuthorized";
+import { useAuth } from "@/src/hooks/useAuth";
 import { useTranslation } from "@/src/i18n";
 import { approveRenewal, getPendingRenewals, rejectRenewal } from "@/src/services/renewMembership";
 import dayjs from "dayjs";
 import React, { useEffect } from "react";
-import { Alert, FlatList, Image, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, FlatList, Image, Keyboard, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function ApproveRenewMembershipScreen() {
     const [renewals, setRenewals] = React.useState<any[]>([]);
     const [remarks, setRemarks] = React.useState<Record<string, string>>({});
     const [loadingId, setLoadingId] = React.useState<string | null>(null);
     const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+    const { userProfile } = useAuth();
     const { t } = useTranslation();
 
     const fetchRenewals = async () => {
@@ -25,12 +29,20 @@ export default function ApproveRenewMembershipScreen() {
         fetchRenewals()
     }, []);
 
+    const openPreview = async (path: string) => {
+        const { data, error } = await supabase.storage.from("receipts").createSignedUrl(path, 60 * 5);
+        if (error || !data) {
+            Alert.alert(t('errorTitle'), error?.message || t('failedToApprove'));
+            return;
+        }
+        setPreviewUrl(data.signedUrl);
+    };
 
     const onApprove = async (item: any) => {
         try {
             setLoadingId(item.id);
-            const by = auth?.currentUser?.email || auth?.currentUser?.uid || undefined;
-            await approveRenewal({ userId: item.userEmail, renewalId: item.id, remark: remarks[item.id], by });
+            const by = userProfile?.email || userProfile?.id || undefined;
+            await approveRenewal({ renewalId: item.id, remark: remarks[item.id], by });
             Alert.alert(t('approved'), `Renewal ${item.id} approved.`);
             setRemarks((r) => ({ ...r, [item.id]: "" }));
             await fetchRenewals();
@@ -43,15 +55,15 @@ export default function ApproveRenewMembershipScreen() {
     };
 
     const onReject = async (item: any) => {
-        if (!remarks.hasOwnProperty(item.id) || remarks[item.id].length === 0) {
+        if (!remarks[item.id] || remarks[item.id].trim().length === 0) {
             Alert.alert('Alert', t('requiredRemark'));
             return;
         }
 
         try {
             setLoadingId(item.id);
-            const by = auth?.currentUser?.email || auth?.currentUser?.uid || undefined;
-            await rejectRenewal({ userId: item.userEmail, renewalId: item.id, remark: remarks[item.id], by });
+            const by = userProfile?.email || userProfile?.id || undefined;
+            await rejectRenewal({ renewalId: item.id, remark: remarks[item.id], by });
             Alert.alert(t('rejected'), `Renewal ${item.id} rejected.`);
             setRemarks((r) => ({ ...r, [item.id]: "" }));
             await fetchRenewals();
@@ -63,8 +75,12 @@ export default function ApproveRenewMembershipScreen() {
         }
     };
 
+    if (!isStaffRole(userProfile?.role)) {
+        return <NotAuthorized />;
+    }
+
     return (
-        <View style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>
+        <KeyboardDismissView style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>
             {renewals.length > 0 ? (
                 <View style={{ alignSelf: 'flex-end', marginBottom: 16 }}>
                     <Text style={{ fontSize: 18, fontWeight: 'bold', textAlign: 'left' }}>{t('totalPendingRenewals')}: {renewals.length} </Text>
@@ -75,6 +91,7 @@ export default function ApproveRenewMembershipScreen() {
             <FlatList
                 data={renewals}
                 keyExtractor={(item) => item.id}
+                keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                     <View style={{ padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginVertical: 6 }}>
                         <Text style={{ fontWeight: '600' }}>{t('user')}: {item.userFullName}</Text>
@@ -83,7 +100,7 @@ export default function ApproveRenewMembershipScreen() {
                         <Text>{t('submitted')}: {item.submittedAtMillis ? dayjs(item.submittedAtMillis).format('DD/MM/YYYY hh:mm a') : item.submittedAt}</Text>
 
                         {(item.certificateUrl || item.screenshotUrl) ? (
-                            <TouchableOpacity onPress={() => setPreviewUrl(item.certificateUrl || item.screenshotUrl)} style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#f1f5f9', borderRadius: 6 }}>
+                            <TouchableOpacity onPress={() => openPreview(item.certificateUrl || item.screenshotUrl)} style={{ marginTop: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#f1f5f9', borderRadius: 6 }}>
                                 <Text style={{ color: '#0f172a' }}>{t('viewAttachment')}</Text>
                             </TouchableOpacity>
                         ) : null}
@@ -93,6 +110,8 @@ export default function ApproveRenewMembershipScreen() {
                             value={remarks[item.id] || ''}
                             onChangeText={(t) => setRemarks((r) => ({ ...r, [item.id]: t }))}
                             style={{ marginTop: 10, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 8 }}
+                            returnKeyType="done"
+                            onSubmitEditing={() => Keyboard.dismiss()}
                         />
 
                         <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
@@ -117,6 +136,6 @@ export default function ApproveRenewMembershipScreen() {
                     ) : null}
                 </View>
             </Modal>
-        </View>
+        </KeyboardDismissView>
     );
 }
