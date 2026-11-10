@@ -89,7 +89,9 @@ android {
 
     namespace 'my.ppkc.stg'
     defaultConfig {
-        applicationId 'my.ppkc.stg'
+        // Overridden per-flavor below (every real build variant picks stg or prd) -
+        // this default is only a fallback and isn't expected to be built directly.
+        applicationId 'my.ppkc'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -111,11 +113,18 @@ android {
     }
     flavorDimensions "env"
     productFlavors {
+        // Each flavor sets its own explicit applicationId (not applicationIdSuffix)
+        // so the identity is correct regardless of whatever Expo's prebuild-sync
+        // last wrote into defaultConfig.applicationId above.
         stg {
             dimension "env"
+            applicationId "my.ppkc.stg"
+            resValue "string", "app_name", "PKKC (STG)"
         }
         prd {
             dimension "env"
+            applicationId "my.ppkc"
+            resValue "string", "app_name", "PKKC"
         }
     }
     buildTypes {

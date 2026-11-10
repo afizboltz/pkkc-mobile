@@ -34,6 +34,9 @@
       }
     },
     "prd": {
+      "android": {
+        "gradleCommand": ":app:bundlePrdRelease"
+      },
       "env": {
         "EXPO_PUBLIC_ENV": "prd"
       }
