@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 
-import { ListRow } from "@/src/components/ui";
+import { ListRow, MemberOnlyGate } from "@/src/components/ui";
 import { useTranslation } from "@/src/i18n";
 import { logoutUser, requestAccountDeletion } from "@/src/services/auth";
 import { useAuth } from "@/src/hooks/useAuth";
@@ -58,6 +58,7 @@ export default function ProfileScreen() {
   };
 
   return (
+    <MemberOnlyGate title="Profil" message="Log masuk untuk melihat profil anda.">
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <LinearGradient
         colors={[ColorPalette.primary[500], ColorPalette.primary[800]]}
@@ -110,6 +111,7 @@ export default function ProfileScreen() {
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
+    </MemberOnlyGate>
   );
 }
 

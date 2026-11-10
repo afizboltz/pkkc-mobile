@@ -1,4 +1,4 @@
-import { ChipGroup, EmptyState } from '@/src/components/ui';
+import { ChipGroup, EmptyState, MemberOnlyGate } from '@/src/components/ui';
 import { getAnnouncements } from '@/src/services/announcement';
 import { printLog } from '@/src/utils/log';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -93,6 +93,7 @@ export default function NotifikasiScreen() {
   );
 
   return (
+    <MemberOnlyGate title="Notifikasi" message="Log masuk untuk melihat notifikasi anda.">
     <View style={styles.container}>
       <View style={styles.chipWrapper}>
         <ChipGroup options={FILTER_OPTIONS} selectedKey={filter} onSelect={setFilter} />
@@ -123,6 +124,7 @@ export default function NotifikasiScreen() {
         </ScrollView>
       )}
     </View>
+    </MemberOnlyGate>
   );
 }
 

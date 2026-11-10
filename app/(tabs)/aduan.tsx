@@ -9,6 +9,7 @@ interface Complaint {
   id: string;
   title: string;
   location: string;
+  description?: string;
   date: string;
   status: StatusBadgeStatus;
   mine: boolean;
@@ -77,6 +78,9 @@ function ComplaintRow({ item }: { item: Complaint }) {
         <MaterialIcons name="place" size={14} color={ColorPalette.gray[500]} />
         <Text style={styles.complaintMetaText} numberOfLines={1}>{item.location}</Text>
       </View>
+      {item.description ? (
+        <Text style={styles.complaintDescription} numberOfLines={3}>{item.description}</Text>
+      ) : null}
       <View style={styles.complaintFooterRow}>
         <Text style={styles.complaintDate}>{item.date}</Text>
         <StatusBadge label={STATUS_LABELS[item.status]} status={item.status} />
@@ -111,6 +115,7 @@ export default function AduanScreen() {
       id: `mine-${Date.now()}`,
       title: formTitle.trim(),
       location: formLocation.trim(),
+      description: formDescription.trim() || undefined,
       date: formatTodayMs(),
       status: 'diterima',
       mine: true,
@@ -270,6 +275,11 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xs,
     color: ColorPalette.gray[500],
     flexShrink: 1,
+  },
+  complaintDescription: {
+    fontSize: Typography.fontSize.sm,
+    color: ColorPalette.gray[600],
+    marginBottom: Spacing.sm,
   },
   complaintFooterRow: {
     flexDirection: 'row',

@@ -1,4 +1,4 @@
-import { Button, SegmentedTabs, StatusBadge } from '@/src/components/ui';
+import { Button, MemberOnlyGate, SegmentedTabs, StatusBadge } from '@/src/components/ui';
 import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from '@/src/theme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React, { useMemo, useState } from 'react';
@@ -71,6 +71,7 @@ export default function BancianScreen() {
   };
 
   return (
+    <MemberOnlyGate title="Bancian / Undian" message="Log masuk untuk menyertai bancian dan undian komuniti.">
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
@@ -126,6 +127,7 @@ export default function BancianScreen() {
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
+    </MemberOnlyGate>
   );
 }
 

@@ -51,6 +51,9 @@ export type { PlaceholderImageProps } from './PlaceholderImage';
 export { LoginPrompt } from './LoginPrompt';
 export type { LoginPromptProps } from './LoginPrompt';
 
+export { MemberOnlyGate } from './MemberOnlyGate';
+export type { MemberOnlyGateProps } from './MemberOnlyGate';
+
 export { QRCodeCard } from './QRCodeCard';
 export type { QRCodeCardProps } from './QRCodeCard';
 

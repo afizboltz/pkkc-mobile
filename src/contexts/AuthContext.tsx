@@ -63,6 +63,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
                 return;
             }
+            // Flip loading back on for the duration of this fetch (not just the
+            // initial cold-start one) — otherwise a SIGNED_IN event that lands
+            // after `loading` already settled to false leaves userProfile null
+            // and loading false simultaneously, which useAccessLevel() can't
+            // tell apart from "confirmed logged out", briefly guest-gating a
+            // user who just signed in.
+            if (isMounted) setLoading(true);
             hydrateProfile(session?.user.id).finally(() => {
                 if (isMounted) setLoading(false);
             });

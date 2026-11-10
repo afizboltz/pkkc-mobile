@@ -1,4 +1,4 @@
-import { Avatar, Button, ListRow, QRCodeCard } from '@/src/components/ui';
+import { Avatar, Button, ListRow, MemberOnlyGate, QRCodeCard } from '@/src/components/ui';
 import { useAuth } from '@/src/hooks/useAuth';
 import { router } from 'expo-router';
 import dayjs from 'dayjs';
@@ -51,6 +51,7 @@ export default function KeahlianScreen() {
   };
 
   return (
+    <MemberOnlyGate title="Keahlian PKKC" message="Log masuk untuk melihat kad keahlian anda.">
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.heroCard}>
         <Avatar name={userProfile?.fullName} size={72} />
@@ -84,6 +85,7 @@ export default function KeahlianScreen() {
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
+    </MemberOnlyGate>
   );
 }
 

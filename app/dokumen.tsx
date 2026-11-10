@@ -1,4 +1,4 @@
-import { ChipGroup, ListRow } from '@/src/components/ui';
+import { ChipGroup, ListRow, MemberOnlyGate } from '@/src/components/ui';
 import { ColorPalette, Spacing, Typography } from '@/src/theme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React, { useMemo, useState } from 'react';
@@ -42,6 +42,7 @@ export default function DokumenScreen() {
   };
 
   return (
+    <MemberOnlyGate title="Dokumen" message="Log masuk untuk melihat dokumen rasmi PKKC.">
     <View style={styles.container}>
       <View style={styles.chipWrapper}>
         <ChipGroup options={CATEGORY_OPTIONS} selectedKey={category} onSelect={setCategory} />
@@ -75,6 +76,7 @@ export default function DokumenScreen() {
         }
       />
     </View>
+    </MemberOnlyGate>
   );
 }
 
