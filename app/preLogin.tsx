@@ -1,12 +1,15 @@
 import { ThemedText } from '@/src/components/ThemedText';
 import { Button, Card } from '@/src/components/ui';
+import { PRIVACY_POLICY_URL } from '@/src/config/legal';
 import { BorderRadius, ColorPalette, Spacing } from '@/src/theme';
 import { useNavigation } from 'expo-router';
 import React from 'react';
 import {
     Image,
+    Linking,
     SafeAreaView,
     StyleSheet,
+    Text,
     View
 } from 'react-native';
 
@@ -46,7 +49,10 @@ export default function PreLoginScreen() {
 
                 <View style={styles.footer}>
                     <ThemedText type="caption" style={styles.footerText}>
-                        By continuing, you agree to our Terms of Service and Privacy Policy
+                        By continuing, you agree to our Terms of Service and{' '}
+                        <Text style={styles.footerLink} onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
+                            Privacy Policy
+                        </Text>
                     </ThemedText>
                 </View>
             </View>
@@ -98,5 +104,9 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         color: ColorPalette.gray[500],
         paddingHorizontal: Spacing.lg,
+    },
+    footerLink: {
+        color: ColorPalette.primary[500],
+        textDecorationLine: 'underline',
     },
 });

@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import React from "react";
 import {
+  Alert,
   FlatList,
   Image,
   ScrollView,
@@ -13,6 +14,7 @@ import {
 } from "react-native";
 
 import { useTranslation } from "@/src/i18n";
+import { requestAccountDeletion } from "@/src/services/auth";
 import { useAuth } from "../src/hooks/useAuth";
 import { BorderRadius, ColorPalette, Spacing, Typography } from "@/src/theme";
 
@@ -20,6 +22,25 @@ export default function ProfileScreen() {
   const navigation = useNavigation();
   const { userProfile } = useAuth();
   const { t } = useTranslation();
+
+  const onRequestAccountDeletion = () => {
+    Alert.alert(t('requestAccountDeletionConfirmTitle'), t('requestAccountDeletionConfirmMessage'), [
+      { text: t('cancel'), style: 'cancel' },
+      {
+        text: t('ok'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await requestAccountDeletion();
+            Alert.alert(t('requestAccountDeletionSuccess'));
+            router.replace('/login');
+          } catch (e: any) {
+            Alert.alert(t('requestAccountDeletionFailed'), e?.message || t('pleaseTryAgain'));
+          }
+        },
+      },
+    ]);
+  };
 
   const documents: { id: string; name: string; url: string }[] = [];
 
@@ -92,6 +113,14 @@ export default function ProfileScreen() {
         >
           <Ionicons name="key-outline" size={22} color={ColorPalette.primary[500]} />
           <Text style={styles.rowLabel}>{t('changePassword')}</Text>
+          <Ionicons name="chevron-forward" size={20} color={ColorPalette.gray[400]} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.row}
+          onPress={onRequestAccountDeletion}
+        >
+          <Ionicons name="trash-outline" size={22} color={ColorPalette.error[500]} />
+          <Text style={[styles.rowLabel, { color: ColorPalette.error[500] }]}>{t('requestAccountDeletion')}</Text>
           <Ionicons name="chevron-forward" size={20} color={ColorPalette.gray[400]} />
         </TouchableOpacity>
       </View>

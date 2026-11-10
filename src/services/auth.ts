@@ -315,6 +315,37 @@ export const loginWithIcNo = async (icNo: string, password: string) => {
     }
 };
 
+// Google Play requires an in-app way to request account deletion. This records
+// the request for staff to action manually (supabase/migrations/20261110100000_account_deletion_requests.sql)
+// rather than cascading a self-service delete through membership/AGM/vote/receipt records.
+//
+// NOTE: `as any` below is temporary - `account_deletion_requests` isn't in
+// src/types/supabase.ts yet because that migration hasn't been applied to the
+// project and types haven't been regenerated. Remove the cast once both are done.
+export const requestAccountDeletion = async (reason?: string) => {
+    try {
+        await logUserAction('requestAccountDeletion_start', {});
+
+        const { data: sessionData } = await supabase.auth.getSession();
+        const user = sessionData.session?.user;
+        if (!user) throw new Error("Not signed in");
+
+        const { error } = await supabase.from('account_deletion_requests' as any).insert({
+            user_id: user.id,
+            email: user.email,
+            reason: reason || null,
+        } as any);
+        if (error) throw error;
+
+        await logUserAction('requestAccountDeletion_success', { uid: user.id });
+
+        await logoutUser();
+    } catch (error: any) {
+        await logError('requestAccountDeletion', 'Request account deletion failed', error);
+        throw error;
+    }
+};
+
 export const logoutUser = async () => {
     const startTime = Date.now();
 

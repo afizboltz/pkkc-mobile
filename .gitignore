@@ -18,6 +18,10 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Android production signing (never commit real release key material)
+android/app/release.keystore
+android/keystore.properties
+
 # Metro
 .metro-health-check*
 
