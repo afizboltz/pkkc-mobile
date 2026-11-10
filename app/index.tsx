@@ -1,11 +1,11 @@
 import { useAuth } from '@/src/hooks/useAuth';
+import { getPostAuthRouteName } from '@/src/services/auth';
 import { printLog } from '@/src/utils/log';
-import { useNavigation } from 'expo-router';
+import { router } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 export default function Index() {
-    const navigation = useNavigation();
     const { userProfile, loading } = useAuth();
 
     printLog('loading', loading)
@@ -14,54 +14,9 @@ export default function Index() {
 
     React.useEffect(() => {
         if (!loading) {
-            if (!userProfile) {
-                navigation.reset({
-                    index: 0,
-                    routes: [
-                        {
-                            name: 'login',
-                        },
-                    ],
-                });
-            } else if (userProfile?.status === 'pending') {
-                navigation.reset({
-                    index: 0,
-                    routes: [
-                        {
-                            name: 'pending',
-                        },
-                    ],
-                });
-            } else if (userProfile?.status === 'active') {
-                navigation.reset({
-                    index: 0,
-                    routes: [
-                        {
-                            name: 'dashboard',
-                        },
-                    ],
-                });
-            } else if (userProfile?.status === 'rejected') {
-                navigation.reset({
-                    index: 0,
-                    routes: [
-                        {
-                            name: 'rejected',
-                        },
-                    ],
-                });
-            } else {
-                navigation.reset({
-                    index: 0,
-                    routes: [
-                        {
-                            name: 'preLogin',
-                        },
-                    ],
-                });
-            }
+            router.replace(`/${getPostAuthRouteName(userProfile)}` as any);
         }
-    }, [userProfile, loading, navigation]);
+    }, [userProfile, loading]);
 
 
     return (

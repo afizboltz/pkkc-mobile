@@ -4,10 +4,9 @@ import { logoutUser, resubmitApplication } from "@/src/services/auth";
 import { Ionicons } from "@expo/vector-icons";
 import dayjs from "dayjs";
 import * as ImagePicker from "expo-image-picker";
-import { useNavigation } from "expo-router";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import { Alert, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
 import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from "@/src/theme";
@@ -15,7 +14,6 @@ import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from "@/src/t
 export default function RejectedScreen() {
     const [isResubmitting, setIsResubmitting] = useState(false);
     const [newReceiptUri, setNewReceiptUri] = useState<string | null>(null);
-    const navigation = useNavigation();
     const { userProfile, refreshProfile } = useAuth();
     const { t } = useTranslation();
 
@@ -44,7 +42,7 @@ export default function RejectedScreen() {
             }
             await refreshProfile();
             Alert.alert(t('resubmitSuccessTitle'), t('resubmitSuccessMessage'));
-            navigation.reset({ index: 0, routes: [{ name: 'pending' as never }] });
+            router.replace('/pending');
         } catch (e: any) {
             Alert.alert(t('error'), t('resubmitFailed'));
         } finally {
@@ -66,7 +64,7 @@ export default function RejectedScreen() {
     const handleSignOut = async () => {
         try {
             await logoutUser();
-            navigation.reset({ index: 0, routes: [{ name: 'login' as never }] });
+            router.replace('/login');
         } catch (e: any) {
             Alert.alert(t('signOutFailed'), e?.message || t('pleaseTryAgain'));
         }
@@ -79,22 +77,22 @@ export default function RejectedScreen() {
 
     return (
         <View style={styles.container}>
-            <Animated.View style={styles.contentContainer} entering={FadeIn.duration(600)}>
-                <Animated.View style={styles.iconContainer} entering={FadeInUp.duration(500).delay(100)}>
+            <View style={styles.contentContainer}>
+                <View style={styles.iconContainer}>
                     <View style={styles.iconCircle}>
                         <Ionicons name="close-circle" size={48} color={ColorPalette.error[500]} />
                     </View>
-                </Animated.View>
+                </View>
 
-                <Animated.View entering={FadeInUp.duration(500).delay(200)}>
+                <View>
                     <Text style={styles.title}>{t('accountRejectedHeading')}</Text>
-                </Animated.View>
+                </View>
 
-                <Animated.View entering={FadeInUp.duration(500).delay(300)}>
+                <View>
                     <Text style={styles.subtitle}>{t('rejectedIntro')}</Text>
-                </Animated.View>
+                </View>
 
-                <Animated.View entering={FadeInUp.duration(500).delay(400)} style={{ width: '100%' }}>
+                <View style={{ width: '100%' }}>
                     <Card variant="outlined" padding="lg" style={styles.infoCard}>
                         <Text style={styles.reasonLabel}>{t('rejectionReasonLabel')}</Text>
                         <Text style={styles.reasonText}>
@@ -104,9 +102,9 @@ export default function RejectedScreen() {
                             <Text style={styles.rejectedOnText}>{t('rejectedOnLabel')}: {rejectedOn}</Text>
                         )}
                     </Card>
-                </Animated.View>
+                </View>
 
-                <Animated.View entering={FadeInUp.duration(500).delay(500)} style={{ width: '100%' }}>
+                <View style={{ width: '100%' }}>
                     <Card variant="elevated" padding="md" style={styles.receiptCard}>
                         <Text style={styles.uploadLabel}>{t('updateReceiptOptional')}</Text>
                         {newReceiptUri ? (
@@ -123,9 +121,9 @@ export default function RejectedScreen() {
                             </TouchableOpacity>
                         )}
                     </Card>
-                </Animated.View>
+                </View>
 
-                <Animated.View entering={FadeInUp.duration(500).delay(600)} style={{ width: '100%' }}>
+                <View style={{ width: '100%' }}>
                     <Button
                         variant="primary"
                         size="lg"
@@ -136,9 +134,9 @@ export default function RejectedScreen() {
                     >
                         {isResubmitting ? t('resubmitting') : t('resubmitForReview')}
                     </Button>
-                </Animated.View>
+                </View>
 
-                <Animated.View entering={FadeInUp.duration(500).delay(700)} style={{ width: '100%' }}>
+                <View style={{ width: '100%' }}>
                     <Button
                         variant="ghost"
                         size="md"
@@ -148,9 +146,9 @@ export default function RejectedScreen() {
                     >
                         {t('logout')}
                     </Button>
-                </Animated.View>
+                </View>
 
-                <Animated.View entering={FadeInUp.duration(500).delay(800)}>
+                <View>
                     <View style={styles.supportContainer}>
                         <Text style={styles.supportText}>{t('needHelp')}</Text>
                         <TouchableOpacity
@@ -163,8 +161,8 @@ export default function RejectedScreen() {
                             <Text style={styles.whatsappButtonText}>{t('contactAdmin')}</Text>
                         </TouchableOpacity>
                     </View>
-                </Animated.View>
-            </Animated.View>
+                </View>
+            </View>
         </View>
     );
 }

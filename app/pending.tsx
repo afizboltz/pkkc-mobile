@@ -5,10 +5,9 @@ import { logoutUser } from "@/src/services/auth";
 import { mmkvAsyncStorage } from "@/src/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
 import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from "@/src/theme";
@@ -16,7 +15,6 @@ import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from "@/src/t
 export default function PendingScreen() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const router = useRouter();
-    const navigation = useNavigation();
     const { userProfile, refreshProfile } = useAuth();
     const { t } = useTranslation();
     const isCheckingRef = useRef(false);
@@ -67,7 +65,7 @@ export default function PendingScreen() {
 
             if (status === "rejected") {
                 await refreshProfile();
-                navigation.reset({ index: 0, routes: [{ name: 'rejected' as never }] });
+                router.replace("/rejected");
                 return;
             }
 
@@ -92,7 +90,7 @@ export default function PendingScreen() {
     const handleSignOut = async () => {
         try {
             await logoutUser();
-            navigation.reset({ index: 0, routes: [{ name: 'login' as never }] });
+            router.replace("/login");
         } catch (e: any) {
             Alert.alert(t('signOutFailed'), e?.message || t('pleaseTryAgain'));
         }
@@ -135,30 +133,24 @@ export default function PendingScreen() {
 
     return (
         <View style={styles.container}>
-            <Animated.View
-                style={styles.contentContainer}
-                entering={FadeIn.duration(600)}
-            >
-                <Animated.View
-                    style={styles.iconContainer}
-                    entering={FadeInUp.duration(500).delay(100)}
-                >
+            <View style={styles.contentContainer}>
+                <View style={styles.iconContainer}>
                     <View style={styles.iconCircle}>
                         <Ionicons name="time" size={48} color={ColorPalette.warning[500]} />
                     </View>
-                </Animated.View>
+                </View>
 
-                <Animated.View entering={FadeInUp.duration(500).delay(200)}>
+                <View>
                     <Text style={styles.title}>{t('accountPendingApproval')}</Text>
-                </Animated.View>
+                </View>
 
-                <Animated.View entering={FadeInUp.duration(500).delay(300)}>
+                <View>
                     <Text style={styles.subtitle}>
                         {t('pendingThankYou')}
                     </Text>
-                </Animated.View>
+                </View>
 
-                <Animated.View entering={FadeInUp.duration(500).delay(400)}>
+                <View>
                     <Card variant="outlined" padding="lg" style={styles.infoCard}>
                         <View style={styles.infoRow}>
                             <Ionicons name="checkmark-circle" size={20} color={ColorPalette.success[500]} />
@@ -173,9 +165,9 @@ export default function PendingScreen() {
                             <Text style={styles.infoText}>{t('pendingInfoNotify')}</Text>
                         </View>
                     </Card>
-                </Animated.View>
+                </View>
 
-                <Animated.View entering={FadeInUp.duration(500).delay(500)} style={{ width: '100%' }}>
+                <View style={{ width: '100%' }}>
                     <Button
                         variant="primary"
                         size="lg"
@@ -187,9 +179,9 @@ export default function PendingScreen() {
                         <Ionicons name="refresh" size={20} color={ColorPalette.white} />
                         {isRefreshing ? t('checking') : t('checkStatus')}
                     </Button>
-                </Animated.View>
+                </View>
 
-                <Animated.View entering={FadeInUp.duration(500).delay(550)} style={{ width: '100%' }}>
+                <View style={{ width: '100%' }}>
                     <Button
                         variant="ghost"
                         size="md"
@@ -199,9 +191,9 @@ export default function PendingScreen() {
                     >
                         {t('logout')}
                     </Button>
-                </Animated.View>
+                </View>
 
-                <Animated.View entering={FadeInUp.duration(500).delay(600)}>
+                <View>
                     <View style={styles.supportContainer}>
                         <Text style={styles.supportText}>{t('needHelp')}</Text>
                         <TouchableOpacity
@@ -214,8 +206,8 @@ export default function PendingScreen() {
                             <Text style={styles.whatsappButtonText}>{t('contactAdmin')}</Text>
                         </TouchableOpacity>
                     </View>
-                </Animated.View>
-            </Animated.View>
+                </View>
+            </View>
         </View>
     );
 }

@@ -39,15 +39,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         hydrateProfileRef.current = hydrateProfile;
 
-        supabase.auth.getSession().then(({ data }) => {
-            hydrateProfile(data.session?.user.id).finally(() => {
-                if (isMounted) setLoading(false);
-            });
-        });
-
         // A single shared listener (instead of one per useAuth() call site) backs every
-        // consumer of this context. TOKEN_REFRESHED/USER_UPDATED don't change which profile
-        // applies, so we skip refetching on those to avoid redundant queries and UI flicker.
+        // consumer of this context. It also covers the initial cold-start session: Supabase
+        // always fires an INITIAL_SESSION event right after this subscription is registered,
+        // carrying the persisted session — so there's no need to also call getSession()
+        // separately. Doing both used to race two concurrent hydrateProfile() calls for the
+        // same session, where a slow/failing second call could null out a profile the first
+        // one had already set, bouncing the user back to the login screen after relaunch.
+        // TOKEN_REFRESHED/USER_UPDATED don't change which profile applies, so we skip
+        // refetching on those to avoid redundant queries and UI flicker.
         const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
                 return;

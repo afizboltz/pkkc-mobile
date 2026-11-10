@@ -93,7 +93,7 @@ export const submitRenewal = async ({
     imageUri: string;
 }) => {
     const response = await fetch(imageUri);
-    const blob = await response.blob();
+    const arraybuffer = await response.arrayBuffer();
 
     // Supabase Storage path owner-prefix must be set before the renewal row exists, so the
     // renewal's own id is generated client-side here (gen_random_uuid() equivalent).
@@ -105,7 +105,7 @@ export const submitRenewal = async ({
 
     const { error: uploadError } = await supabase.storage
         .from("receipts")
-        .upload(path, blob, { contentType: "image/jpeg" });
+        .upload(path, arraybuffer, { contentType: "image/jpeg" });
     if (uploadError) throw uploadError;
 
     const insertPayload: TablesInsert<"renewals"> = {

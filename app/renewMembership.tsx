@@ -3,7 +3,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "expo-router";
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Animated, { FadeInUp } from "react-native-reanimated";
 import { useAuth } from "../src/hooks/useAuth";
 import { submitRenewal } from "../src/services/renewMembership";
 import { Card } from "@/src/components/ui/Card";
@@ -64,7 +63,7 @@ export default function RenewMembershipScreen() {
 
     return (
         <View style={styles.container}>
-            <Animated.View entering={FadeInUp.duration(400)}>
+            <View>
                 <Card variant="elevated" padding="lg">
                     <View style={styles.header}>
                         <View style={styles.iconContainer}>
@@ -107,9 +106,9 @@ export default function RenewMembershipScreen() {
                         </View>
                     )}
                 </Card>
-            </Animated.View>
+            </View>
 
-            <Animated.View entering={FadeInUp.duration(400).delay(100)}>
+            <View>
                 <Card variant="elevated" padding="lg" style={styles.uploadCard}>
                     <Text style={styles.uploadLabel}>
                         {(isAjk ? (selectedKind === 'certificate') : false) ? (t('pickCertificate') || 'Pick Certificate') : t('pickScreenshot')}
@@ -138,9 +137,9 @@ export default function RenewMembershipScreen() {
                         </View>
                     )}
                 </Card>
-            </Animated.View>
+            </View>
 
-            <Animated.View entering={FadeInUp.duration(400).delay(200)} style={styles.submitContainer}>
+            <View style={styles.submitContainer}>
                 {uploading ? (
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color={ColorPalette.primary[500]} />
@@ -158,7 +157,7 @@ export default function RenewMembershipScreen() {
                         {t('submit')}
                     </Button>
                 )}
-            </Animated.View>
+            </View>
         </View>
     );
 }

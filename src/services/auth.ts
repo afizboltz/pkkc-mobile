@@ -42,6 +42,26 @@ export interface UserProfile {
     profileImage?: string;
 }
 
+export type PostAuthRouteName = "login" | "pending" | "dashboard" | "rejected" | "preLogin";
+
+// Single source of truth for "which screen does this account belong on". Used both by
+// app/index.tsx (routing on every app-state change) and by login.tsx/verifyAndSetPassword.tsx
+// (routing right after a successful sign-in) so a pending/rejected account can never land on
+// the dashboard just because one of those call sites forgot to check status.
+export const getPostAuthRouteName = (profile: UserProfile | null | undefined): PostAuthRouteName => {
+    if (!profile) return "login";
+    switch (profile.status) {
+        case "pending":
+            return "pending";
+        case "active":
+            return "dashboard";
+        case "rejected":
+            return "rejected";
+        default:
+            return "preLogin";
+    }
+};
+
 const mapUserRowToProfile = (row: UserRow, renewals: { status: string }[]): UserProfile => ({
     id: row.id,
     uid: row.id,
@@ -156,13 +176,13 @@ export const registerUser = async (
 
         await logInfo('registerUser', 'Fetching image bytes');
         const response = await fetch(imageUri);
-        const blob = await response.blob();
+        const arraybuffer = await response.arrayBuffer();
 
         const path = `${authUserId}/registration/${Date.now()}.jpg`;
         await logInfo('registerUser', 'Uploading receipt to storage');
         const { error: uploadError } = await supabase.storage
             .from("receipts")
-            .upload(path, blob, { contentType: "image/jpeg" });
+            .upload(path, arraybuffer, { contentType: "image/jpeg" });
         if (uploadError) throw uploadError;
         await logInfo('registerUser', 'Receipt uploaded successfully');
 
@@ -397,11 +417,11 @@ export const resubmitApplication = async (newReceiptUri?: string): Promise<{ out
 
         if (newReceiptUri) {
             const response = await fetch(newReceiptUri);
-            const blob = await response.blob();
+            const arraybuffer = await response.arrayBuffer();
             const path = `${userId}/registration/${Date.now()}.jpg`;
             const { error: uploadError } = await supabase.storage
                 .from("receipts")
-                .upload(path, blob, { contentType: "image/jpeg" });
+                .upload(path, arraybuffer, { contentType: "image/jpeg" });
             if (uploadError) throw uploadError;
             updatePayload.slip_bayaran_url = path;
         }

@@ -27,16 +27,19 @@ export default function AgmVotingScreen() {
     const [voting, setVoting] = useState(false);
 
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const isActiveRef = useRef(false);
 
     const load = useCallback(async (showSpinner: boolean) => {
         if (showSpinner) setLoading(true);
         try {
             const event = await getActiveAgmEvent();
+            if (!isActiveRef.current) return;
             if (!event) {
                 setResolution(null);
                 return;
             }
             const resolutions = await listAgmResolutions(event.id);
+            if (!isActiveRef.current) return;
             const open = resolutions.find((r) => r.status === "open");
             const latestClosed = resolutions
                 .filter((r) => r.status === "closed")
@@ -45,8 +48,13 @@ export default function AgmVotingScreen() {
             setResolution(current);
 
             if (current && userProfile?.id) {
-                setMyVote(await getMyVote(current.id, userProfile.id));
-                setTally(await getResolutionTally(current.id));
+                const [vote, resultTally] = await Promise.all([
+                    getMyVote(current.id, userProfile.id),
+                    getResolutionTally(current.id),
+                ]);
+                if (!isActiveRef.current) return;
+                setMyVote(vote);
+                setTally(resultTally);
             } else {
                 setMyVote(null);
                 setTally(null);
@@ -54,15 +62,17 @@ export default function AgmVotingScreen() {
         } catch (error) {
             console.error("Error loading AGM voting:", error);
         } finally {
-            if (showSpinner) setLoading(false);
+            if (showSpinner && isActiveRef.current) setLoading(false);
         }
     }, [userProfile?.id]);
 
     useFocusEffect(
         useCallback(() => {
+            isActiveRef.current = true;
             load(true);
             timerRef.current = setInterval(() => load(false), POLL_MS);
             return () => {
+                isActiveRef.current = false;
                 if (timerRef.current) clearInterval(timerRef.current);
             };
         }, [load])

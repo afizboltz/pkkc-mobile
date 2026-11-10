@@ -10,9 +10,8 @@ import { Ionicons } from "@expo/vector-icons";
 import dayjs from "dayjs";
 import { useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeInUp } from "react-native-reanimated";
 
 export default function AgmHubScreen() {
     const { userProfile } = useAuth();
@@ -23,26 +22,35 @@ export default function AgmHubScreen() {
     const [event, setEvent] = useState<AgmEventRow | null>(null);
     const [claimedCode, setClaimedCode] = useState<AgmCodeRow | null>(null);
 
+    const isActiveRef = useRef(false);
+
     const load = useCallback(async () => {
         setLoading(true);
         try {
             const activeEvent = await getActiveAgmEvent();
+            if (!isActiveRef.current) return;
             setEvent(activeEvent);
             if (activeEvent && userProfile?.id) {
-                setClaimedCode(await getMyClaimedCode(activeEvent.id, userProfile.id));
+                const claimed = await getMyClaimedCode(activeEvent.id, userProfile.id);
+                if (!isActiveRef.current) return;
+                setClaimedCode(claimed);
             } else {
                 setClaimedCode(null);
             }
         } catch (error) {
             console.error("Error loading AGM hub:", error);
         } finally {
-            setLoading(false);
+            if (isActiveRef.current) setLoading(false);
         }
     }, [userProfile?.id]);
 
     useFocusEffect(
         useCallback(() => {
+            isActiveRef.current = true;
             load();
+            return () => {
+                isActiveRef.current = false;
+            };
         }, [load])
     );
 
@@ -67,14 +75,14 @@ export default function AgmHubScreen() {
 
     return (
         <View style={styles.container}>
-            <Animated.View entering={FadeInUp.duration(400)}>
+            <View>
                 <Card variant="elevated" padding="lg" style={styles.headerCard}>
                     <Text style={styles.eventName}>{event.name}</Text>
                     <Text style={styles.eventDate}>{dayjs(event.event_date).format("D MMMM YYYY")}</Text>
                 </Card>
-            </Animated.View>
+            </View>
 
-            <Animated.View entering={FadeInUp.duration(400).delay(100)}>
+            <View>
                 <Card
                     variant="outlined"
                     padding="lg"
@@ -92,9 +100,9 @@ export default function AgmHubScreen() {
                         {registered ? `${t("agmRegisteredMessage")}${claimedCode?.code}` : t("agmNotRegisteredMessage")}
                     </Text>
                 </Card>
-            </Animated.View>
+            </View>
 
-            <Animated.View entering={FadeInUp.duration(400).delay(200)} style={styles.actions}>
+            <View style={styles.actions}>
                 {!registered ? (
                     <Button variant="primary" size="lg" fullWidth onPress={() => navigation.navigate("agmRegister" as never)}>
                         {t("agmRegisterNow")}
@@ -109,7 +117,7 @@ export default function AgmHubScreen() {
                         </Button>
                     </>
                 )}
-            </Animated.View>
+            </View>
         </View>
     );
 }

@@ -10,7 +10,6 @@ import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Animated, { FadeInUp } from "react-native-reanimated";
 
 const CATEGORY_ICON: Record<string, string> = {
     agenda: "list-outline",
@@ -77,25 +76,23 @@ export default function AgmDocumentsScreen() {
                 data={documents}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
-                renderItem={({ item, index }) => (
-                    <Animated.View entering={FadeInUp.duration(300).delay(index * 60)}>
-                        <TouchableOpacity onPress={() => openDocument(item)}>
-                            <Card variant="elevated" padding="md" style={styles.docCard}>
-                                <View style={styles.iconWrap}>
-                                    <Ionicons
-                                        name={(CATEGORY_ICON[item.category] as any) || "document-outline"}
-                                        size={22}
-                                        color={ColorPalette.primary[500]}
-                                    />
-                                </View>
-                                <View style={styles.docInfo}>
-                                    <Text style={styles.docTitle}>{item.title}</Text>
-                                    <Text style={styles.docCategory}>{item.category.replace("_", " ")}</Text>
-                                </View>
-                                <Ionicons name="chevron-forward" size={18} color={ColorPalette.gray[400]} />
-                            </Card>
-                        </TouchableOpacity>
-                    </Animated.View>
+                renderItem={({ item }) => (
+                    <TouchableOpacity onPress={() => openDocument(item)}>
+                        <Card variant="elevated" padding="md" style={styles.docCard}>
+                            <View style={styles.iconWrap}>
+                                <Ionicons
+                                    name={(CATEGORY_ICON[item.category] as any) || "document-outline"}
+                                    size={22}
+                                    color={ColorPalette.primary[500]}
+                                />
+                            </View>
+                            <View style={styles.docInfo}>
+                                <Text style={styles.docTitle}>{item.title}</Text>
+                                <Text style={styles.docCategory}>{item.category.replace("_", " ")}</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={18} color={ColorPalette.gray[400]} />
+                        </Card>
+                    </TouchableOpacity>
                 )}
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>

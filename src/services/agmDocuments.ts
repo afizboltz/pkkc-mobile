@@ -35,7 +35,7 @@ export const uploadAgmDocument = async ({
     uploadedBy: string;
 }): Promise<void> => {
     const response = await fetch(fileUri);
-    const blob = await response.blob();
+    const arraybuffer = await response.arrayBuffer();
 
     const documentId =
         typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -45,7 +45,7 @@ export const uploadAgmDocument = async ({
 
     const { error: uploadError } = await supabase.storage
         .from("agm_documents")
-        .upload(path, blob, { contentType: "application/pdf" });
+        .upload(path, arraybuffer, { contentType: "application/pdf" });
     if (uploadError) throw uploadError;
 
     const { error: insertError } = await supabase.from("agm_documents").insert({

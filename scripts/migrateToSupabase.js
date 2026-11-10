@@ -37,15 +37,20 @@ const supabaseServiceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 const supabaseProjectRef = requireEnv("SUPABASE_PROJECT_REF");
 const firebaseServiceAccountPath = requireEnv("FIREBASE_SERVICE_ACCOUNT_PATH");
 
-if (supabaseProjectRef !== EXPECTED_PROJECT_REF || !supabaseUrl.includes(EXPECTED_PROJECT_REF)) {
+if (
+  supabaseProjectRef !== EXPECTED_PROJECT_REF ||
+  !supabaseUrl.includes(EXPECTED_PROJECT_REF)
+) {
   console.error(
     `Refusing to run: SUPABASE_PROJECT_REF/SUPABASE_URL do not match the expected stg project ` +
-    `ref (${EXPECTED_PROJECT_REF}). This script is only safe to run against stg.`
+      `ref (${EXPECTED_PROJECT_REF}). This script is only safe to run against stg.`,
   );
   process.exit(1);
 }
 
-const serviceAccount = require(require("path").resolve(firebaseServiceAccountPath));
+const serviceAccount = require(
+  require("path").resolve(firebaseServiceAccountPath),
+);
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const firestore = admin.firestore();
 const firebaseAuth = admin.auth();
@@ -66,7 +71,11 @@ function toIsoOrNull(value) {
 
 function toDateOrNull(value) {
   const iso = toIsoOrNull(value);
-  return iso ? iso.slice(0, 10) : (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null);
+  return iso
+    ? iso.slice(0, 10)
+    : typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? value
+      : null;
 }
 
 function normalizeRenewals(raw) {
@@ -78,7 +87,13 @@ function normalizeRenewals(raw) {
 }
 
 async function run() {
-  const summary = { usersMigrated: 0, usersSkipped: 0, renewalsMigrated: 0, announcementsMigrated: 0, errors: [] };
+  const summary = {
+    usersMigrated: 0,
+    usersSkipped: 0,
+    renewalsMigrated: 0,
+    announcementsMigrated: 0,
+    errors: [],
+  };
 
   // 1. Read all Firestore users up front (also used to seed the pkkc_id sequence).
   const usersSnap = await firestore.collection("users").get();
@@ -88,7 +103,8 @@ async function run() {
   // 2. Seed the pkkc_id sequence so new signups never collide with migrated ids.
   let maxPkkcNumber = 0;
   for (const u of firestoreUsers) {
-    const match = typeof u.pkkcID === "string" ? u.pkkcID.match(/PKKC-(\d+)/) : null;
+    const match =
+      typeof u.pkkcID === "string" ? u.pkkcID.match(/PKKC-(\d+)/) : null;
     if (match) maxPkkcNumber = Math.max(maxPkkcNumber, parseInt(match[1], 10));
   }
   if (maxPkkcNumber > 0) {
@@ -97,7 +113,7 @@ async function run() {
     // the apply_migration MCP tool before continuing, so it's a deliberate, logged step.
     console.log(
       `ACTION REQUIRED: run this in the Supabase SQL editor before continuing:\n` +
-      `  alter sequence public.pkkc_id_seq restart with ${maxPkkcNumber + 1};`
+        `  alter sequence public.pkkc_id_seq restart with ${maxPkkcNumber + 1};`,
     );
   }
 
@@ -118,11 +134,15 @@ async function run() {
         // No Firebase Auth account (e.g. imported-only user) — Supabase will mint a fresh id.
       }
 
-      const { data: created, error: createError } = await supabase.auth.admin.createUser({
-        email,
-        email_confirm: true,
-        user_metadata: { migrated_from: "firebase", firebase_uid: authUserId ?? null },
-      });
+      const { data: created, error: createError } =
+        await supabase.auth.admin.createUser({
+          email,
+          email_confirm: true,
+          user_metadata: {
+            migrated_from: "firebase",
+            firebase_uid: authUserId ?? null,
+          },
+        });
       if (createError) throw createError;
 
       const newId = created.user.id;
@@ -139,7 +159,9 @@ async function run() {
         marital_status: u.maritalStatus || null,
         kita_resident: u.kitaResident || null,
         address: u.address || null,
-        number_of_family_members: u.numberOfFamilyMembers ? Number(u.numberOfFamilyMembers) || null : null,
+        number_of_family_members: u.numberOfFamilyMembers
+          ? Number(u.numberOfFamilyMembers) || null
+          : null,
         occupation: u.occupation || null,
         status: u.status || "pending",
         role: u.role || "member",
@@ -166,11 +188,15 @@ async function run() {
           user_id: newId,
           kind: r.kind === "certificate" ? "certificate" : "payment",
           amount: typeof r.amount === "number" ? r.amount : 0,
-          status: ["pending", "approved", "rejected"].includes(r.status) ? r.status : "pending",
+          status: ["pending", "approved", "rejected"].includes(r.status)
+            ? r.status
+            : "pending",
           payment_method: r.paymentMethod || null,
           screenshot_url: r.screenshotUrl || null,
           certificate_url: r.certificateUrl || null,
-          submitted_at: toIsoOrNull(r.submittedAtMillis || r.submittedAt) || new Date().toISOString(),
+          submitted_at:
+            toIsoOrNull(r.submittedAtMillis || r.submittedAt) ||
+            new Date().toISOString(),
           approved_at: toIsoOrNull(r.approvedAtMillis),
           approved_remark: r.approvedRemark || null,
           approved_by: r.approvedBy || null,

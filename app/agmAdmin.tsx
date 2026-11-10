@@ -11,7 +11,6 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Animated, { FadeInUp } from "react-native-reanimated";
 
 export default function AgmAdminScreen() {
     const { userProfile } = useAuth();
@@ -44,16 +43,16 @@ export default function AgmAdminScreen() {
 
     return (
         <View style={styles.container}>
-            <Animated.View entering={FadeInUp.duration(400)}>
+            <View>
                 <Card variant="elevated" padding="lg" style={styles.quorumCard}>
                     <Text style={styles.quorumLabel}>{t("agmQuorumLabel")}</Text>
                     <Text style={styles.quorumValue}>{quorum}</Text>
                     <Text style={styles.eventName}>{event?.name || "-"}</Text>
                 </Card>
-            </Animated.View>
+            </View>
 
-            {items.map((item, index) => (
-                <Animated.View key={item.route} entering={FadeInUp.duration(400).delay((index + 1) * 100)}>
+            {items.map((item) => (
+                <View key={item.route}>
                     <TouchableOpacity onPress={() => navigation.navigate(item.route as never)}>
                         <Card variant="elevated" padding="md" style={styles.itemCard}>
                             <Ionicons name={item.icon as any} size={22} color={ColorPalette.primary[500]} />
@@ -61,7 +60,7 @@ export default function AgmAdminScreen() {
                             <Ionicons name="chevron-forward" size={18} color={ColorPalette.gray[400]} />
                         </Card>
                     </TouchableOpacity>
-                </Animated.View>
+                </View>
             ))}
         </View>
     );
