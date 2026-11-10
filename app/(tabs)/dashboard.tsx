@@ -1,3 +1,5 @@
+import { EventCard, SectionHeader } from '@/src/components/ui';
+import { useAccessLevel } from '@/src/hooks/useAccessLevel';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useTranslation } from '@/src/i18n';
 import { getAnnouncements } from '@/src/services/announcement';
@@ -15,6 +17,42 @@ import { BorderRadius, ColorPalette, Spacing, Typography } from '@/src/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BUTTON_WIDTH = (SCREEN_WIDTH - Spacing.md * 2 - Spacing.sm) / 2;
+
+interface FeaturedEvent {
+    id: string;
+    title: string;
+    date: string;
+    location: string;
+    attendeeCount: number;
+    imageUrl: string;
+}
+
+const FEATURED_EVENTS: FeaturedEvent[] = [
+    {
+        id: '1',
+        title: 'KITA SPORTS DAY 1.0',
+        date: '25-26 Jul 2026',
+        location: 'Padang Komuniti Kita Cybersouth',
+        attendeeCount: 120,
+        imageUrl: 'https://picsum.photos/400/300?random=101',
+    },
+    {
+        id: '2',
+        title: 'BOWLING TOURNAMENT',
+        date: '2 Mei 2026',
+        location: 'Ampang Superbowl, IOI City Mall',
+        attendeeCount: 84,
+        imageUrl: 'https://picsum.photos/400/300?random=102',
+    },
+    {
+        id: '3',
+        title: 'HARI BERSAMA AGENSI',
+        date: '25 Apr 2026',
+        location: 'Dewan Komuniti Kita Cybersouth',
+        attendeeCount: 68,
+        imageUrl: 'https://picsum.photos/400/300?random=103',
+    },
+];
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
@@ -109,6 +147,8 @@ export default function DashboardScreen() {
     const { userProfile } = useAuth();
     const navigation = useNavigation();
     const { t, locale, setLocale } = useTranslation();
+    const accessLevel = useAccessLevel();
+    const isGuest = accessLevel === 'guest';
 
     const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'ajk';
 
@@ -221,17 +261,74 @@ export default function DashboardScreen() {
 
             <View style={styles.menuGrid}>
                 <MenuCard
-                    title={t('renewMembership')}
-                    icon="autorenew"
-                    color={ColorPalette.success[500]}
-                    onPress={() => navigation.navigate('renewMembership' as never)}
+                    title="Program & Aktiviti"
+                    icon="event"
+                    color={ColorPalette.brandPink[500]}
+                    onPress={() => router.push('/program' as any)}
                 />
                 <MenuCard
-                    title={t('agm')}
-                    icon="how-to-vote"
-                    color={ColorPalette.warning[500]}
-                    onPress={() => navigation.navigate('agm' as never)}
+                    title="Direktori Peniaga"
+                    icon="storefront"
+                    color={ColorPalette.success[500]}
+                    onPress={() => router.push('/direktoriPeniaga' as any)}
                 />
+                {!isGuest && (
+                    <>
+                        <MenuCard
+                            title="Aduan & Cadangan"
+                            icon="report-problem"
+                            color={ColorPalette.warning[500]}
+                            onPress={() => router.push('/aduan' as any)}
+                        />
+                        <MenuCard
+                            title="Keahlian"
+                            icon="badge"
+                            color={ColorPalette.info[500]}
+                            onPress={() => router.push('/keahlian' as any)}
+                        />
+                        <MenuCard
+                            title="Bancian & Undian"
+                            icon="how-to-vote"
+                            color={ColorPalette.tertiary[500]}
+                            onPress={() => router.push('/bancian' as any)}
+                        />
+                        <MenuCard
+                            title="Dokumen"
+                            icon="description"
+                            color={ColorPalette.primary[700]}
+                            onPress={() => router.push('/dokumen' as any)}
+                        />
+                    </>
+                )}
+            </View>
+
+            <View style={styles.eventsSection}>
+                <SectionHeader title="Aktiviti Akan Datang" />
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.eventsScrollContent}
+                >
+                    {FEATURED_EVENTS.map((event) => (
+                        <EventCard
+                            key={event.id}
+                            title={event.title}
+                            imageUrl={event.imageUrl}
+                            dateLabel={event.date}
+                            location={event.location}
+                            attendeeCount={event.attendeeCount}
+                            ctaLabel="Daftar Sekarang"
+                            width={260}
+                            onPressCta={() => {
+                                if (isGuest) {
+                                    router.push('/login');
+                                    return;
+                                }
+                                Alert.alert('Pendaftaran', 'Pendaftaran berjaya! Kami akan hubungi anda tidak lama lagi.');
+                            }}
+                        />
+                    ))}
+                </ScrollView>
             </View>
 
             {isAdmin && (
@@ -436,6 +533,14 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         justifyContent: 'space-between',
         gap: Spacing.sm,
+    },
+    eventsSection: {
+        marginTop: Spacing.xl,
+    },
+    eventsScrollContent: {
+        gap: Spacing.md,
+        paddingRight: Spacing.md,
+        paddingBottom: Spacing.xs,
     },
     menuItem: {
         width: BUTTON_WIDTH,
