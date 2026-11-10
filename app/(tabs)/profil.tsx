@@ -1,25 +1,23 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { router, useNavigation } from "expo-router";
+import { router } from "expo-router";
 import React from "react";
 import {
   Alert,
-  FlatList,
   Image,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 
+import { ListRow } from "@/src/components/ui";
 import { useTranslation } from "@/src/i18n";
-import { requestAccountDeletion } from "@/src/services/auth";
+import { logoutUser, requestAccountDeletion } from "@/src/services/auth";
 import { useAuth } from "@/src/hooks/useAuth";
 import { BorderRadius, ColorPalette, Spacing, Typography } from "@/src/theme";
 
 export default function ProfileScreen() {
-  const navigation = useNavigation();
   const { userProfile } = useAuth();
   const { t } = useTranslation();
 
@@ -42,9 +40,14 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const documents: { id: string; name: string; url: string }[] = [];
-
-  const activities: { id: string; title: string; date: string }[] = [];
+  const handleSignOut = async () => {
+    try {
+      await logoutUser();
+      router.replace('/login');
+    } catch (e: any) {
+      Alert.alert(t('signOutFailed'), e?.message || t('pleaseTryAgain'));
+    }
+  };
 
   const getProfilePicture = (userPic?: string) => {
     if (userPic) {
@@ -77,82 +80,32 @@ export default function ProfileScreen() {
         </View>
       </LinearGradient>
 
-      <View style={styles.sectionPanel}>
-        <View style={styles.sectionHeader}>
-          <View style={[styles.sectionIconBadge, { backgroundColor: ColorPalette.primary[500] }]}>
-            <Ionicons name="document-text" size={15} color={ColorPalette.white} />
-          </View>
-          <Text style={styles.sectionTitle}>{t('documents')}</Text>
-        </View>
-        {documents.length > 0 ? (
-          documents.map((doc) => (
-            <TouchableOpacity key={doc.id} style={styles.row}>
-              <Ionicons name="document-outline" size={22} color={ColorPalette.primary[500]} />
-              <Text style={styles.rowLabel}>{doc.name}</Text>
-              <Ionicons name="download-outline" size={20} color={ColorPalette.gray[400]} />
-            </TouchableOpacity>
-          ))
-        ) : (
-          <View style={styles.comingSoonContainer}>
-            <Ionicons name="time-outline" size={32} color={ColorPalette.gray[300]} />
-            <Text style={styles.comingSoonText}>{t('comingSoonText')}</Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.sectionPanel}>
-        <View style={styles.sectionHeader}>
-          <View style={[styles.sectionIconBadge, { backgroundColor: ColorPalette.gray[600] }]}>
-            <Ionicons name="settings" size={15} color={ColorPalette.white} />
-          </View>
-          <Text style={styles.sectionTitle}>{t('account')}</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.row}
-          onPress={() => navigation.navigate('changePassword' as never)}
-        >
-          <Ionicons name="key-outline" size={22} color={ColorPalette.primary[500]} />
-          <Text style={styles.rowLabel}>{t('changePassword')}</Text>
-          <Ionicons name="chevron-forward" size={20} color={ColorPalette.gray[400]} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.row}
+      <View style={styles.listPanel}>
+        <ListRow icon="badge" label="Ahli PKKC" onPress={() => router.push('/keahlian' as any)} />
+        <ListRow icon="event" label="Program Saya" onPress={() => router.push('/program' as any)} />
+        <ListRow icon="report-problem" label="Aduan Saya" onPress={() => router.push('/aduan' as any)} />
+        <ListRow
+          icon="storefront"
+          label="Peniaga Saya"
+          onPress={() => Alert.alert('Peniaga Saya', 'Anda belum mendaftar sebagai peniaga.')}
+        />
+        <ListRow icon="notifications" label="Makluman & Notifikasi" onPress={() => router.push('/notifikasi' as any)} />
+        <ListRow icon="key" label={t('changePassword')} onPress={() => router.push('/changePassword')} />
+        <ListRow
+          icon="delete-outline"
+          iconColor={ColorPalette.error[500]}
+          label={t('requestAccountDeletion')}
           onPress={onRequestAccountDeletion}
-        >
-          <Ionicons name="trash-outline" size={22} color={ColorPalette.error[500]} />
-          <Text style={[styles.rowLabel, { color: ColorPalette.error[500] }]}>{t('requestAccountDeletion')}</Text>
-          <Ionicons name="chevron-forward" size={20} color={ColorPalette.gray[400]} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.sectionPanel}>
-        <View style={styles.sectionHeader}>
-          <View style={[styles.sectionIconBadge, { backgroundColor: ColorPalette.info[500] }]}>
-            <Ionicons name="calendar" size={15} color={ColorPalette.white} />
-          </View>
-          <Text style={styles.sectionTitle}>{t('activitiesJoined')}</Text>
-        </View>
-        {activities.length > 0 ? (
-          <FlatList
-            data={activities}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            renderItem={({ item }) => (
-              <View style={styles.row}>
-                <Ionicons name="calendar-outline" size={20} color={ColorPalette.info[500]} />
-                <View style={{ flex: 1, marginLeft: Spacing.sm }}>
-                  <Text style={styles.activityTitle}>{item.title}</Text>
-                  <Text style={styles.activityDate}>{item.date}</Text>
-                </View>
-              </View>
-            )}
-          />
-        ) : (
-          <View style={styles.comingSoonContainer}>
-            <Ionicons name="calendar-outline" size={32} color={ColorPalette.gray[300]} />
-            <Text style={styles.comingSoonText}>{t('comingSoonText')}</Text>
-          </View>
-        )}
+        />
+        <ListRow icon="help-outline" label="Bantuan & Hubungi Kami" onPress={() => router.push('/directory')} />
+        <ListRow
+          icon="logout"
+          iconColor={ColorPalette.error[500]}
+          labelColor={ColorPalette.error[500]}
+          label="Log Keluar"
+          onPress={handleSignOut}
+          showChevron={false}
+        />
       </View>
 
       <View style={styles.bottomSpacer} />
@@ -237,65 +190,13 @@ const styles = StyleSheet.create({
     color: ColorPalette.white,
     fontWeight: Typography.fontWeight.medium,
   },
-  sectionPanel: {
+  listPanel: {
     backgroundColor: ColorPalette.white,
     borderWidth: 1,
     borderColor: ColorPalette.gray[200],
     borderRadius: BorderRadius.xl,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
     marginTop: Spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  sectionIconBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sectionTitle: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.bold,
-    color: ColorPalette.gray[900],
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: ColorPalette.gray[50],
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.sm,
-    gap: Spacing.md,
-  },
-  rowLabel: {
-    flex: 1,
-    fontSize: Typography.fontSize.sm,
-    color: ColorPalette.gray[700],
-    fontWeight: Typography.fontWeight.medium,
-  },
-  activityTitle: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
-    color: ColorPalette.gray[800],
-  },
-  activityDate: {
-    fontSize: Typography.fontSize.xs,
-    color: ColorPalette.gray[500],
-  },
-  comingSoonContainer: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
-  },
-  comingSoonText: {
-    fontSize: Typography.fontSize.sm,
-    color: ColorPalette.gray[400],
-    fontStyle: 'italic',
-    marginTop: Spacing.sm,
   },
   bottomSpacer: {
     height: Spacing.xxl,

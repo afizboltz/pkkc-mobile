@@ -13,6 +13,7 @@ export interface ListRowProps {
   icon?: string;
   iconColor?: string;
   label: string;
+  labelColor?: string;
   secondaryLabel?: string;
   rightElement?: React.ReactNode;
   onPress?: () => void;
@@ -23,6 +24,7 @@ export function ListRow({
   icon,
   iconColor = ColorPalette.primary[500],
   label,
+  labelColor,
   secondaryLabel,
   rightElement,
   onPress,
@@ -36,7 +38,7 @@ export function ListRow({
         </View>
       )}
       <View style={styles.textContainer}>
-        <Text style={styles.label} numberOfLines={1}>{label}</Text>
+        <Text style={[styles.label, labelColor ? { color: labelColor } : null]} numberOfLines={1}>{label}</Text>
         {secondaryLabel ? <Text style={styles.secondaryLabel} numberOfLines={1}>{secondaryLabel}</Text> : null}
       </View>
       {rightElement}
