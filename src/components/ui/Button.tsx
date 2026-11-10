@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 
 export interface ButtonProps extends TouchableOpacityProps {
-  variant?: 'primary' | 'secondary' | 'tertiary' | 'success' | 'warning' | 'error' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'accent' | 'success' | 'warning' | 'error' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   disabled?: boolean;

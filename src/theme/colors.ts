@@ -51,6 +51,22 @@ export const ColorPalette = {
     900: '#554806',
   },
 
+  // Brand pink/magenta — used for the revamped UI's CTAs and active-tab state.
+  // Added alongside `primary` (teal) rather than replacing it, since `primary`
+  // is still relied on by screens outside the revamp's scope.
+  brandPink: {
+    50: '#FDE9F1',
+    100: '#FBCFE0',
+    200: '#F7A0C2',
+    300: '#F271A3',
+    400: '#EF4285',
+    500: '#EC1368', // Main brand accent color
+    600: '#C70F58',
+    700: '#A10C47',
+    800: '#7B0937',
+    900: '#550626',
+  },
+
   // Semantic colors
   success: {
     50: '#f0fdf4',
@@ -129,6 +145,7 @@ export const SemanticColors = {
   primary: ColorPalette.primary[500],
   secondary: ColorPalette.secondary[500],
   tertiary: ColorPalette.tertiary[500],
+  accent: ColorPalette.brandPink[500],
   success: ColorPalette.success[500],
   warning: ColorPalette.warning[500],
   error: ColorPalette.error[500],
@@ -141,6 +158,16 @@ export const SemanticColors = {
   textTertiary: ColorPalette.gray[400],
   placeholder: ColorPalette.gray[400],
   disabled: ColorPalette.gray[300],
+} as const;
+
+// Status colors for the revamped list screens (Aduan status, Bancian state, etc.),
+// reusing the existing semantic scales rather than inventing new color families.
+export const StatusColors = {
+  diterima: ColorPalette.info[500],
+  dalamTindakan: ColorPalette.warning[500],
+  selesaiAduan: ColorPalette.success[500],
+  aktif: ColorPalette.brandPink[500],
+  selesaiBancian: ColorPalette.gray[400],
 } as const;
 
 // Theme-specific colors extending the existing system
@@ -189,6 +216,10 @@ export const ExtendedColors = {
     tertiary: {
       text: primaryColor,
       background: tertiaryColor,
+    },
+    accent: {
+      text: secondaryColor,
+      background: ColorPalette.brandPink[500],
     },
     success: {
       text: secondaryColor,
