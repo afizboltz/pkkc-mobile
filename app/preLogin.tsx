@@ -1,7 +1,7 @@
 import { Button } from '@/src/components/ui';
 import { PRIVACY_POLICY_URL } from '@/src/config/legal';
 import { useGuest } from '@/src/contexts/GuestContext';
-import { BorderRadius, ColorPalette, Spacing, Typography } from '@/src/theme';
+import { BorderRadius, ColorPalette, primaryColor, Spacing, Typography } from '@/src/theme';
 import { router } from 'expo-router';
 import React from 'react';
 import {
@@ -87,7 +87,7 @@ export default function PreLoginScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: ColorPalette.primary[500],
+        backgroundColor: primaryColor,
     },
     content: {
         flexGrow: 1,
