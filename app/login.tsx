@@ -1,15 +1,15 @@
 import { useAuth } from '@/src/hooks/useAuth';
+import { KeyboardDismissView } from '@/src/components/KeyboardDismissView';
 import { getAppSetting } from '@/src/services/appSettings';
-import { loginWithIcNo } from '@/src/services/auth';
+import { getPostAuthRouteName, getUserProfile, loginWithIcNo } from '@/src/services/auth';
 import { printLog } from '@/src/utils/log';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -18,8 +18,6 @@ import {
   View,
 } from 'react-native';
 import Animated, {
-  FadeInDown,
-  FadeInUp,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -28,7 +26,6 @@ import Animated, {
 import { useTranslation } from '@/src/i18n';
 import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from '@/src/theme';
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 export default function LoginScreen() {
   const { loading } = useAuth();
@@ -60,10 +57,11 @@ export default function LoginScreen() {
     try {
       const res = await loginWithIcNo(icNo, password);
       printLog('LoginScreen', res);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "dashboard" } as any],
-      })
+      // Route by the account's real status (pending/active/rejected), not straight to the
+      // dashboard — AuthContext's own background hydration from the SIGNED_IN event isn't
+      // guaranteed to have landed yet, so this fetches the profile directly to decide.
+      const profile = res.user ? await getUserProfile(res.user.id) : null;
+      router.replace(`/${getPostAuthRouteName(profile)}` as any);
     } catch (error: any) {
       Alert.alert(t('error'), t('failedSignIn'));
     }
@@ -79,15 +77,9 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoid}
-      >
+      <KeyboardDismissView style={styles.keyboardAvoid}>
         <View style={styles.content}>
-          <Animated.View 
-            style={styles.header}
-            entering={FadeInDown.duration(600).springify()}
-          >
+          <View style={styles.header}>
             <View style={styles.logoContainer}>
               <View style={styles.logoPlaceholder}>
                 <Ionicons name="people" size={48} color={ColorPalette.white} />
@@ -95,12 +87,9 @@ export default function LoginScreen() {
             </View>
             <Text style={styles.title}>{t('welcomeBack')}</Text>
             <Text style={styles.subtitle}>{t('signInToAccount')}</Text>
-          </Animated.View>
+          </View>
 
-          <Animated.View
-            style={styles.form}
-            entering={FadeInUp.duration(600).delay(200).springify()}
-          >
+          <View style={styles.form}>
             {bootstrapEnabled && (
               <TouchableOpacity
                 style={styles.bootstrapCta}
@@ -143,6 +132,8 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  returnKeyType="done"
+                  onSubmitEditing={() => Keyboard.dismiss()}
                 />
                 <TouchableOpacity
                   style={styles.eyeButton}
@@ -165,13 +156,12 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             <Animated.View style={buttonAnimatedStyle}>
-              <AnimatedTouchableOpacity
+              <TouchableOpacity
                 style={[styles.loginButton, loading && styles.loginButtonDisabled]}
                 onPress={handleLogin}
                 onPressIn={handleButtonPressIn}
                 onPressOut={handleButtonPressOut}
                 disabled={loading}
-                entering={FadeInUp.duration(400).delay(400)}
               >
                 {loading ? (
                   <ActivityIndicator color={ColorPalette.white} />
@@ -181,21 +171,18 @@ export default function LoginScreen() {
                     <Ionicons name="arrow-forward" size={20} color={ColorPalette.white} />
                   </>
                 )}
-              </AnimatedTouchableOpacity>
+              </TouchableOpacity>
             </Animated.View>
 
-            <Animated.View 
-              style={styles.footer}
-              entering={FadeInUp.duration(400).delay(500)}
-            >
+            <View style={styles.footer}>
               <Text style={styles.footerText}>{t('dontHaveAccount')}</Text>
               <TouchableOpacity onPress={() => { navigation.navigate('signup' as never) }}>
                 <Text style={styles.linkText}>{t('signUp')}</Text>
               </TouchableOpacity>
-            </Animated.View>
-          </Animated.View>
+            </View>
+          </View>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardDismissView>
     </SafeAreaView>
   );
 }

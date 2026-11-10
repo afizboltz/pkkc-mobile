@@ -1,11 +1,12 @@
 import { supabase } from "@/src/config/supabase";
+import { KeyboardDismissView } from "@/src/components/KeyboardDismissView";
 import { isStaffRole, NotAuthorized } from "@/src/components/NotAuthorized";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useTranslation } from "@/src/i18n";
 import { approveRenewal, getPendingRenewals, rejectRenewal } from "@/src/services/renewMembership";
 import dayjs from "dayjs";
 import React, { useEffect } from "react";
-import { Alert, FlatList, Image, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, FlatList, Image, Keyboard, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function ApproveRenewMembershipScreen() {
     const [renewals, setRenewals] = React.useState<any[]>([]);
@@ -79,7 +80,7 @@ export default function ApproveRenewMembershipScreen() {
     }
 
     return (
-        <View style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>
+        <KeyboardDismissView style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>
             {renewals.length > 0 ? (
                 <View style={{ alignSelf: 'flex-end', marginBottom: 16 }}>
                     <Text style={{ fontSize: 18, fontWeight: 'bold', textAlign: 'left' }}>{t('totalPendingRenewals')}: {renewals.length} </Text>
@@ -90,6 +91,7 @@ export default function ApproveRenewMembershipScreen() {
             <FlatList
                 data={renewals}
                 keyExtractor={(item) => item.id}
+                keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                     <View style={{ padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginVertical: 6 }}>
                         <Text style={{ fontWeight: '600' }}>{t('user')}: {item.userFullName}</Text>
@@ -108,6 +110,8 @@ export default function ApproveRenewMembershipScreen() {
                             value={remarks[item.id] || ''}
                             onChangeText={(t) => setRemarks((r) => ({ ...r, [item.id]: t }))}
                             style={{ marginTop: 10, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 8 }}
+                            returnKeyType="done"
+                            onSubmitEditing={() => Keyboard.dismiss()}
                         />
 
                         <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
@@ -132,6 +136,6 @@ export default function ApproveRenewMembershipScreen() {
                     ) : null}
                 </View>
             </Modal>
-        </View>
+        </KeyboardDismissView>
     );
 }

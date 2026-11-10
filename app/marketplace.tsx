@@ -5,6 +5,7 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Keyboard,
   Linking,
   StyleSheet,
   Text,
@@ -12,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
+import { KeyboardDismissView } from "@/src/components/KeyboardDismissView";
 import { Card } from "@/src/components/ui/Card";
 import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from "@/src/theme";
 
@@ -90,8 +91,8 @@ export default function MarketplaceScreen() {
     );
   };
 
-  const renderItem = ({ item, index }: { item: Item; index: number }) => (
-    <Animated.View entering={FadeInUp.duration(400).delay(index * 100)} style={styles.cardWrapper}>
+  const renderItem = ({ item }: { item: Item }) => (
+    <View style={styles.cardWrapper}>
       <TouchableOpacity
         style={styles.card}
         onPress={() => setSelectedItem(item)}
@@ -117,23 +118,17 @@ export default function MarketplaceScreen() {
           <Text style={styles.itemPrice}>{item.price}</Text>
         </View>
       </TouchableOpacity>
-    </Animated.View>
+    </View>
   );
 
   const renderList = () => (
-    <View style={styles.container}>
-      <Animated.View 
-        style={styles.headerContainer}
-        entering={FadeInDown.duration(500)}
-      >
+    <KeyboardDismissView style={styles.container}>
+      <View style={styles.headerContainer}>
         <Text style={styles.title}>Marketplace</Text>
         <Text style={styles.subtitle}>Find great deals from your neighbors</Text>
-      </Animated.View>
+      </View>
 
-      <Animated.View 
-        style={styles.searchContainer}
-        entering={FadeInUp.duration(400).delay(100)}
-      >
+      <View style={styles.searchContainer}>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={20} color={ColorPalette.gray[400]} />
           <TextInput
@@ -142,6 +137,8 @@ export default function MarketplaceScreen() {
             style={styles.searchInput}
             value={search}
             onChangeText={setSearch}
+            returnKeyType="done"
+            onSubmitEditing={() => Keyboard.dismiss()}
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch("")}>
@@ -149,9 +146,9 @@ export default function MarketplaceScreen() {
             </TouchableOpacity>
           )}
         </View>
-      </Animated.View>
+      </View>
 
-      <Animated.View entering={FadeInUp.duration(400).delay(200)}>
+      <View>
         <FlatList
           data={filteredItems}
           numColumns={2}
@@ -160,6 +157,7 @@ export default function MarketplaceScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
           renderItem={renderItem}
+          keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="search" size={48} color={ColorPalette.gray[300]} />
@@ -167,23 +165,20 @@ export default function MarketplaceScreen() {
             </View>
           }
         />
-      </Animated.View>
-    </View>
+      </View>
+    </KeyboardDismissView>
   );
 
   const renderDetails = (item: Item) => (
     <View style={styles.detailContainer}>
-      <Animated.View 
-        style={styles.detailHeader}
-        entering={FadeIn.duration(300)}
-      >
+      <View style={styles.detailHeader}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => setSelectedItem(null)}
         >
           <Ionicons name="arrow-back" size={22} color={ColorPalette.white} />
         </TouchableOpacity>
-      </Animated.View>
+      </View>
 
       <View style={styles.carouselContainer}>
         <FlatList
@@ -197,10 +192,7 @@ export default function MarketplaceScreen() {
         />
       </View>
 
-      <Animated.View 
-        style={styles.detailContent}
-        entering={FadeInUp.duration(400).delay(100)}
-      >
+      <View style={styles.detailContent}>
         <Card variant="elevated" padding="lg" style={styles.detailCard}>
           <Text style={styles.detailTitle}>{item.name}</Text>
           <Text style={styles.detailPrice}>{item.price}</Text>
@@ -255,7 +247,7 @@ export default function MarketplaceScreen() {
             )}
           </View>
         </Card>
-      </Animated.View>
+      </View>
     </View>
   );
 

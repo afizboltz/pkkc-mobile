@@ -1,4 +1,5 @@
 import { supabase } from "@/src/config/supabase";
+import { KeyboardDismissView } from "@/src/components/KeyboardDismissView";
 import { isStaffRole, NotAuthorized } from "@/src/components/NotAuthorized";
 import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
@@ -10,7 +11,7 @@ import { logError } from "@/src/utils/log";
 import { ColorPalette, Spacing, Typography } from "@/src/theme";
 import dayjs from "dayjs";
 import React, { useEffect } from "react";
-import { Alert, FlatList, Image, Modal, Text, TouchableOpacity, View } from "react-native";
+import { Alert, FlatList, Image, Keyboard, Modal, Text, TouchableOpacity, View } from "react-native";
 
 export default function ApproveNewUserScreen() {
 
@@ -108,12 +109,14 @@ export default function ApproveNewUserScreen() {
     }
 
     return (
-        <View style={{ flex: 1, padding: Spacing.md, backgroundColor: ColorPalette.gray[50] }}>
+        <KeyboardDismissView style={{ flex: 1, padding: Spacing.md, backgroundColor: ColorPalette.gray[50] }}>
             <TextInput
                 placeholder={t('enterFullName')}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 containerStyle={{ marginBottom: Spacing.md }}
+                returnKeyType="done"
+                onSubmitEditing={() => Keyboard.dismiss()}
             />
             {users.length > 0 ? (
                 <View style={{ alignSelf: 'flex-end', marginBottom: Spacing.md }}>
@@ -129,6 +132,7 @@ export default function ApproveNewUserScreen() {
                     return (u.userFullName || '').toLowerCase().includes(q) || (u.userEmail || '').toLowerCase().includes(q);
                 })}
                 keyExtractor={(item) => item.id}
+                keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                     <Card variant="outlined" padding="md" style={{ marginVertical: Spacing.sm }}>
                         <Text>{t('user')}: {item.userFullName}</Text>
@@ -184,6 +188,6 @@ export default function ApproveNewUserScreen() {
                     ) : null}
                 </View>
             </Modal>
-        </View>
+        </KeyboardDismissView>
     );
 }

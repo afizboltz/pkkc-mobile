@@ -1,3 +1,4 @@
+import { KeyboardDismissView } from "@/src/components/KeyboardDismissView";
 import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
 import { useAuth } from "@/src/hooks/useAuth";
@@ -7,7 +8,7 @@ import { ColorPalette, Spacing, Typography } from "@/src/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "expo-router";
 import React, { useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { Keyboard, StyleSheet, Text, TextInput, View } from "react-native";
 
 export default function AgmRegisterScreen() {
     const { userProfile } = useAuth();
@@ -70,7 +71,7 @@ export default function AgmRegisterScreen() {
     }
 
     return (
-        <View style={styles.container}>
+        <KeyboardDismissView style={styles.container}>
             <Card variant="elevated" padding="lg">
                 <Text style={styles.label}>{t("agmRegisterCodeLabel")}</Text>
                 <TextInput
@@ -82,6 +83,8 @@ export default function AgmRegisterScreen() {
                     autoCorrect={false}
                     maxLength={6}
                     style={styles.input}
+                    returnKeyType="done"
+                    onSubmitEditing={() => Keyboard.dismiss()}
                 />
                 {error ? <Text style={styles.errorText}>{error}</Text> : null}
                 <Button
@@ -96,7 +99,7 @@ export default function AgmRegisterScreen() {
                     {submitting ? t("agmRegistering") : t("agmRegisterButton")}
                 </Button>
             </Card>
-        </View>
+        </KeyboardDismissView>
     );
 }
 

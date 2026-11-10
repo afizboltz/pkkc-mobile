@@ -1,4 +1,5 @@
 import { supabase } from "@/src/config/supabase";
+import { KeyboardDismissView } from "@/src/components/KeyboardDismissView";
 import { isStaffRole, NotAuthorized } from "@/src/components/NotAuthorized";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useTranslation } from "@/src/i18n";
@@ -8,8 +9,7 @@ import dayjs from "dayjs";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import React, { useEffect, useState } from "react";
-import { Alert, FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import Animated, { FadeInUp } from "react-native-reanimated";
+import { Alert, FlatList, Image, Keyboard, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Card } from "@/src/components/ui/Card";
 import { Button } from "@/src/components/ui/Button";
 import { Ionicons } from "@expo/vector-icons";
@@ -89,8 +89,8 @@ export default function UserListScreen() {
         return (u.userFullName || '').toLowerCase().includes(q) || (u.userEmail || '').toLowerCase().includes(q);
     });
 
-    const renderItem = ({ item, index }: { item: any; index: number }) => (
-        <Animated.View entering={FadeInUp.duration(400).delay(index * 50)}>
+    const renderItem = ({ item }: { item: any }) => (
+        <View>
             <Card variant="elevated" padding="md" style={styles.itemCard}>
                 <View style={styles.itemHeader}>
                     <View style={styles.avatarContainer}>
@@ -125,7 +125,7 @@ export default function UserListScreen() {
                     </TouchableOpacity>
                 ) : null}
             </Card>
-        </Animated.View>
+        </View>
     );
 
     if (!isStaffRole(userProfile?.role)) {
@@ -133,8 +133,8 @@ export default function UserListScreen() {
     }
 
     return (
-        <View style={styles.container}>
-            <Animated.View entering={FadeInUp.duration(400)}>
+        <KeyboardDismissView style={styles.container}>
+            <View>
                 <View style={styles.searchContainer}>
                     <View style={styles.searchBox}>
                         <Ionicons name="search" size={20} color={ColorPalette.gray[400]} />
@@ -144,6 +144,8 @@ export default function UserListScreen() {
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                             style={styles.searchInput}
+                            returnKeyType="done"
+                            onSubmitEditing={() => Keyboard.dismiss()}
                         />
                         {searchQuery.length > 0 && (
                             <TouchableOpacity onPress={() => setSearchQuery("")}>
@@ -152,9 +154,9 @@ export default function UserListScreen() {
                         )}
                     </View>
                 </View>
-            </Animated.View>
+            </View>
 
-            <Animated.View entering={FadeInUp.duration(400).delay(100)}>
+            <View>
                 <View style={styles.headerRow}>
                     <View style={styles.countBadge}>
                         <Text style={styles.countText}>{renewals.length} Users</Text>
@@ -168,7 +170,7 @@ export default function UserListScreen() {
                         PDF
                     </Button>
                 </View>
-            </Animated.View>
+            </View>
 
             {renewals.length > 0 ? (
                 <FlatList
@@ -177,6 +179,7 @@ export default function UserListScreen() {
                     renderItem={renderItem}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <Ionicons name="search" size={48} color={ColorPalette.gray[300]} />
@@ -201,7 +204,7 @@ export default function UserListScreen() {
                     ) : null}
                 </View>
             </Modal>
-        </View>
+        </KeyboardDismissView>
     );
 }
 

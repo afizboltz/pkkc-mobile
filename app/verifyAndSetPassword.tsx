@@ -1,11 +1,12 @@
-import { selfVerifyAndSetPassword } from '@/src/services/auth';
+import { KeyboardDismissView } from '@/src/components/KeyboardDismissView';
+import { getPostAuthRouteName, getUserProfile, selfVerifyAndSetPassword } from '@/src/services/auth';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from 'expo-router';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -19,7 +20,6 @@ import { useTranslation } from '@/src/i18n';
 import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from '@/src/theme';
 
 export default function VerifyAndSetPasswordScreen() {
-  const navigation = useNavigation();
   const { t } = useTranslation();
 
   const [icNo, setIcNo] = useState('');
@@ -48,7 +48,12 @@ export default function VerifyAndSetPasswordScreen() {
       const result = await selfVerifyAndSetPassword(icNo, email, newPassword);
       if (result.outcome === 'ok') {
         Alert.alert(t('success'), t('verifySuccess'));
-        navigation.reset({ index: 0, routes: [{ name: 'dashboard' } as any] });
+        // Route by the account's real status (pending/active/rejected), not straight to the
+        // dashboard — same reasoning as login.tsx: don't rely on AuthContext's background
+        // hydration having landed yet.
+        const userId = result.session?.user.id;
+        const profile = userId ? await getUserProfile(userId) : null;
+        router.replace(`/${getPostAuthRouteName(profile)}` as any);
         return;
       }
       if (result.outcome === 'throttled') {
@@ -65,11 +70,12 @@ export default function VerifyAndSetPasswordScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: ColorPalette.gray[50] }}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <ScrollView contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, paddingBottom: Spacing.xxl }}>
+      <KeyboardDismissView>
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, paddingBottom: Spacing.xxl }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        >
           <View style={{ alignItems: 'center', marginBottom: Spacing.xl }}>
             <View style={{
               width: 72, height: 72, borderRadius: BorderRadius.xl,
@@ -157,6 +163,8 @@ export default function VerifyAndSetPasswordScreen() {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showPassword}
+                returnKeyType="done"
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
             </View>
           </View>
@@ -182,7 +190,7 @@ export default function VerifyAndSetPasswordScreen() {
             )}
           </TouchableOpacity>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardDismissView>
     </SafeAreaView>
   );
 }

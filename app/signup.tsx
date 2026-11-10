@@ -1,3 +1,4 @@
+import { KeyboardDismissView } from '@/src/components/KeyboardDismissView';
 import DatePickerModal from '@/src/components/ui/DatePickerModal';
 import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
@@ -8,12 +9,12 @@ import { printLog } from '@/src/utils/log';
 import { mmkvAsyncStorage } from '@/src/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from "expo-image-picker";
-import { useNavigation } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
     Image,
-    KeyboardAvoidingView,
+    Keyboard,
     Platform,
     SafeAreaView,
     ScrollView,
@@ -22,11 +23,8 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { registerUser } from '../src/services/auth';
 import { BorderRadius, ColorPalette, Shadow, Spacing, Typography } from '@/src/theme';
-
-const AnimatedView = Animated.createAnimatedComponent(View);
 
 type FormData = {
     name: string;
@@ -209,10 +207,7 @@ export default function SignupScreen() {
 
             if (res.status === "success") {
                 await mmkvAsyncStorage.setItem('signupEmail', email.trim().toLowerCase());
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: "pending" as never }],
-                });
+                router.replace('/pending');
             } else if (res.status === "pending_email_confirmation") {
                 Alert.alert(t('success'), t('pleaseCheckEmailToConfirm') || 'Please check your email to confirm your account, then sign in.');
                 navigation.goBack();
@@ -230,6 +225,8 @@ export default function SignupScreen() {
         multiline?: boolean;
         placeholder?: string;
         secureTextEntry?: boolean;
+        returnKeyType?: 'done' | 'next';
+        onSubmitEditing?: () => void;
     }) => {
         const isSecure = options?.secureTextEntry || false;
         const showPasswordToggle = field === 'password' || field === 'confirmPassword';
@@ -249,6 +246,8 @@ export default function SignupScreen() {
                 autoCorrect={false}
                 multiline={options?.multiline}
                 secureTextEntry={isSecure && !showPasswordValue}
+                returnKeyType={options?.returnKeyType}
+                onSubmitEditing={options?.onSubmitEditing}
                 rightIcon={showPasswordToggle ? (
                     <TouchableOpacity onPress={() => togglePasswordVisibility(!showPasswordValue)}>
                         <Ionicons
@@ -285,15 +284,14 @@ export default function SignupScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.keyboardAvoid}
-            >
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                    <Animated.View
-                        style={styles.header}
-                        entering={FadeInDown.duration(500).springify()}
-                    >
+            <KeyboardDismissView style={styles.keyboardAvoid}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+                >
+                    <View style={styles.header}>
                         <View style={styles.logoContainer}>
                             <View style={styles.logoPlaceholder}>
                                 <Ionicons name="person-add" size={36} color={ColorPalette.white} />
@@ -301,7 +299,7 @@ export default function SignupScreen() {
                         </View>
                         <Text style={styles.title}>{t('createAccountTitle')}</Text>
                         <Text style={styles.subtitle}>{t('joinCommunity')}</Text>
-                    </Animated.View>
+                    </View>
 
                     <StepProgress
                         currentStep={step}
@@ -311,10 +309,7 @@ export default function SignupScreen() {
                         ofText={t('of')}
                     />
 
-                    <Animated.View
-                        style={styles.form}
-                        entering={FadeInUp.duration(500).delay(100).springify()}
-                    >
+                    <View style={styles.form}>
                         {step === 0 && (
                             <Card variant="elevated" padding="lg">
                                 {renderField('name', t('fullNameReq'), { placeholder: t('enterFullName') })}
@@ -374,10 +369,15 @@ export default function SignupScreen() {
                             <>
                                 <Card variant="elevated" padding="lg">
                                     {renderField('password', t('passwordReq'), { secureTextEntry: true, placeholder: t('createPassword') })}
-                                    {renderField('confirmPassword', t('confirmPasswordReq'), { secureTextEntry: true, placeholder: t('confirmYourPassword') })}
+                                    {renderField('confirmPassword', t('confirmPasswordReq'), {
+                                        secureTextEntry: true,
+                                        placeholder: t('confirmYourPassword'),
+                                        returnKeyType: 'done',
+                                        onSubmitEditing: () => Keyboard.dismiss(),
+                                    })}
                                 </Card>
 
-                                <AnimatedView entering={FadeInUp.duration(400).delay(200)}>
+                                <View>
                                     <Card variant="outlined" padding="md" style={styles.paymentCard}>
                                         <View style={styles.paymentHeader}>
                                             <Ionicons name="wallet" size={24} color={ColorPalette.tertiary[500]} />
@@ -387,9 +387,9 @@ export default function SignupScreen() {
                                         <Text style={styles.paymentText}>{t('memberFee')}</Text>
                                         <Text style={styles.accountText}>{t('makePaymentTo')}</Text>
                                     </Card>
-                                </AnimatedView>
+                                </View>
 
-                                <AnimatedView entering={FadeInUp.duration(400).delay(300)}>
+                                <View>
                                     <Card variant="elevated" padding="md">
                                         <Text style={styles.uploadLabel}>{t('uploadPaymentScreenshot')}</Text>
                                         {imageUri ? (
@@ -412,9 +412,9 @@ export default function SignupScreen() {
                                             </View>
                                         )}
                                     </Card>
-                                </AnimatedView>
+                                </View>
 
-                                <AnimatedView entering={FadeInUp.duration(400).delay(400)}>
+                                <View>
                                     <TouchableOpacity
                                         onPress={() => updateFormData('ack', !formData.ack)}
                                         style={styles.ackRow}
@@ -424,11 +424,11 @@ export default function SignupScreen() {
                                         </View>
                                         <Text style={styles.ackText}>{t('ackAgreementText')}</Text>
                                     </TouchableOpacity>
-                                </AnimatedView>
+                                </View>
                             </>
                         )}
 
-                        <AnimatedView entering={FadeInUp.duration(400).delay(500)} style={styles.navRow}>
+                        <View style={styles.navRow}>
                             {step > 0 && (
                                 <Button
                                     variant="secondary"
@@ -459,20 +459,17 @@ export default function SignupScreen() {
                                     {isLoading ? t('creatingAccount') : t('createAccount')}
                                 </Button>
                             )}
-                        </AnimatedView>
+                        </View>
 
-                        <Animated.View
-                            style={styles.footer}
-                            entering={FadeInUp.duration(400).delay(600)}
-                        >
+                        <View style={styles.footer}>
                             <Text style={styles.footerText}>{t('alreadyHaveAccount')}</Text>
                             <TouchableOpacity onPress={() => navigation.goBack()}>
                                 <Text style={styles.linkText}>{t('signInLower')}</Text>
                             </TouchableOpacity>
-                        </Animated.View>
-                    </Animated.View>
+                        </View>
+                    </View>
                 </ScrollView>
-            </KeyboardAvoidingView>
+            </KeyboardDismissView>
         </SafeAreaView>
     );
 }

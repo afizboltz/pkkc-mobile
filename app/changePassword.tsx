@@ -1,3 +1,4 @@
+import { KeyboardDismissView } from '@/src/components/KeyboardDismissView';
 import { changePassword } from '@/src/services/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
@@ -5,7 +6,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -55,11 +56,12 @@ export default function ChangePasswordScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: ColorPalette.gray[50] }}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <ScrollView contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, paddingBottom: Spacing.xxl }}>
+      <KeyboardDismissView>
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, paddingBottom: Spacing.xxl }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        >
           <View style={{ marginBottom: Spacing.lg }}>
             <Text style={{ fontSize: Typography.fontSize.sm, fontWeight: Typography.fontWeight.medium, color: ColorPalette.gray[700], marginBottom: Spacing.xs }}>
               {t('newPasswordLabel')}
@@ -93,6 +95,8 @@ export default function ChangePasswordScreen() {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showPassword}
+                returnKeyType="done"
+                onSubmitEditing={() => Keyboard.dismiss()}
               />
             </View>
           </View>
@@ -115,7 +119,7 @@ export default function ChangePasswordScreen() {
             )}
           </TouchableOpacity>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardDismissView>
     </SafeAreaView>
   );
 }

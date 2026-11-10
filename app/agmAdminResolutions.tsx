@@ -1,3 +1,4 @@
+import { KeyboardDismissView } from "@/src/components/KeyboardDismissView";
 import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
 import { isStaffRole, NotAuthorized } from "@/src/components/NotAuthorized";
@@ -32,31 +33,37 @@ export default function AgmAdminResolutionsScreen() {
     const [busyId, setBusyId] = useState<string | null>(null);
 
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const isActiveRef = useRef(false);
 
     const load = useCallback(async (showSpinner: boolean) => {
         if (showSpinner) setLoading(true);
         try {
             const event = await getActiveAgmEvent();
+            if (!isActiveRef.current) return;
             setEventId(event?.id ?? null);
             if (!event) return;
             const list = await listAgmResolutions(event.id);
+            if (!isActiveRef.current) return;
             setResolutions(list);
 
             const relevant = list.filter((r) => r.status === "open" || r.status === "closed");
             const entries = await Promise.all(relevant.map(async (r) => [r.id, await getResolutionTally(r.id)] as const));
+            if (!isActiveRef.current) return;
             setTallies(Object.fromEntries(entries));
         } catch (error) {
             console.error("Error loading AGM resolutions:", error);
         } finally {
-            if (showSpinner) setLoading(false);
+            if (showSpinner && isActiveRef.current) setLoading(false);
         }
     }, []);
 
     useFocusEffect(
         useCallback(() => {
+            isActiveRef.current = true;
             load(true);
             timerRef.current = setInterval(() => load(false), POLL_MS);
             return () => {
+                isActiveRef.current = false;
                 if (timerRef.current) clearInterval(timerRef.current);
             };
         }, [load])
@@ -106,7 +113,7 @@ export default function AgmAdminResolutionsScreen() {
     const anyOpen = resolutions.some((r) => r.status === "open");
 
     return (
-        <View style={styles.container}>
+        <KeyboardDismissView style={styles.container}>
             <Card variant="elevated" padding="lg" style={styles.addCard}>
                 <TextInput
                     value={title}
@@ -135,6 +142,7 @@ export default function AgmAdminResolutionsScreen() {
                     data={resolutions}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContent}
+                    keyboardShouldPersistTaps="handled"
                     renderItem={({ item }) => {
                         const tally = tallies[item.id];
                         return (
@@ -179,7 +187,7 @@ export default function AgmAdminResolutionsScreen() {
                     }}
                 />
             )}
-        </View>
+        </KeyboardDismissView>
     );
 }
 

@@ -1,3 +1,4 @@
+import { KeyboardDismissView } from "@/src/components/KeyboardDismissView";
 import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
 import { isStaffRole, NotAuthorized } from "@/src/components/NotAuthorized";
@@ -11,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Keyboard, StyleSheet, Text, TextInput, View } from "react-native";
 
 type CodeListItem = {
     id: string;
@@ -87,7 +88,7 @@ export default function AgmAdminCodesScreen() {
     }
 
     return (
-        <View style={styles.container}>
+        <KeyboardDismissView style={styles.container}>
             <Card variant="elevated" padding="lg" style={styles.generateCard}>
                 <Text style={styles.label}>{t("agmGenerateCodesCount")}</Text>
                 <View style={styles.generateRow}>
@@ -96,6 +97,8 @@ export default function AgmAdminCodesScreen() {
                         onChangeText={(v) => setCount(v.replace(/[^0-9]/g, ""))}
                         keyboardType="number-pad"
                         style={styles.countInput}
+                        returnKeyType="done"
+                        onSubmitEditing={() => Keyboard.dismiss()}
                     />
                     <Button variant="primary" loading={generating} disabled={!eventId || generating} onPress={onGenerate}>
                         {t("agmGenerateButton")}
@@ -113,6 +116,7 @@ export default function AgmAdminCodesScreen() {
                     data={codes}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContent}
+                    keyboardShouldPersistTaps="handled"
                     renderItem={({ item }) => (
                         <View style={styles.codeRow}>
                             <Text style={styles.codeText}>{item.code}</Text>
@@ -131,7 +135,7 @@ export default function AgmAdminCodesScreen() {
                     )}
                 />
             )}
-        </View>
+        </KeyboardDismissView>
     );
 }
 

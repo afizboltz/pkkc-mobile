@@ -1,3 +1,4 @@
+import { KeyboardDismissView } from "@/src/components/KeyboardDismissView";
 import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
 import { isStaffRole, NotAuthorized } from "@/src/components/NotAuthorized";
@@ -11,7 +12,7 @@ import type { AgmDocumentRow } from "@/src/types/models";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 const CATEGORIES: AgmDocumentCategory[] = ["agenda", "financial_statement", "resolution", "minutes", "other"];
 
@@ -77,7 +78,7 @@ export default function AgmAdminDocumentsScreen() {
     }
 
     return (
-        <View style={styles.container}>
+        <KeyboardDismissView style={styles.container}>
             <Card variant="elevated" padding="lg" style={styles.uploadCard}>
                 <TextInput
                     value={title}
@@ -85,6 +86,8 @@ export default function AgmAdminDocumentsScreen() {
                     placeholder={t("agmDocumentTitleLabel")}
                     placeholderTextColor={ColorPalette.gray[400]}
                     style={styles.input}
+                    returnKeyType="done"
+                    onSubmitEditing={() => Keyboard.dismiss()}
                 />
                 <Text style={styles.label}>{t("agmDocumentCategoryLabel")}</Text>
                 <View style={styles.categoryRow}>
@@ -123,6 +126,7 @@ export default function AgmAdminDocumentsScreen() {
                     data={documents}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContent}
+                    keyboardShouldPersistTaps="handled"
                     renderItem={({ item }) => (
                         <Card variant="outlined" padding="md" style={styles.docRow}>
                             <Ionicons name="document-outline" size={18} color={ColorPalette.primary[500]} />
@@ -132,7 +136,7 @@ export default function AgmAdminDocumentsScreen() {
                     )}
                 />
             )}
-        </View>
+        </KeyboardDismissView>
     );
 }
 

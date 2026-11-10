@@ -1,4 +1,5 @@
 import { supabase } from "@/src/config/supabase";
+import { KeyboardDismissView } from "@/src/components/KeyboardDismissView";
 import { isStaffRole, NotAuthorized } from "@/src/components/NotAuthorized";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useTranslation } from "@/src/i18n";
@@ -8,7 +9,7 @@ import dayjs from "dayjs";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import React, { useEffect } from "react";
-import { Alert, FlatList, Image, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, FlatList, Image, Keyboard, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function RenewUserListScreen() {
     const [renewals, setRenewals] = React.useState<any[]>([]);
@@ -83,12 +84,14 @@ export default function RenewUserListScreen() {
     }
 
     return (
-        <View style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>
+        <KeyboardDismissView style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>
             <TextInput
                 placeholder={t('enterFullName')}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 style={{ marginBottom: 12, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 8 }}
+                returnKeyType="done"
+                onSubmitEditing={() => Keyboard.dismiss()}
             />
             {/* In case the header button isn't visible on some devices, also show an in-page action here */}
             <View style={{ alignSelf: 'flex-end', marginBottom: 12 }}>
@@ -104,6 +107,7 @@ export default function RenewUserListScreen() {
                 <Text>{t('noPendingRenewals')}</Text>
             )}
             <FlatList
+                keyboardShouldPersistTaps="handled"
                 data={renewals.filter(u => {
                     const q = searchQuery.trim().toLowerCase();
                     if (!q) return true;
@@ -137,6 +141,6 @@ export default function RenewUserListScreen() {
                     ) : null}
                 </View>
             </Modal>
-        </View>
+        </KeyboardDismissView>
     );
 }
