@@ -87,11 +87,11 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'my.ppkc.stg'
+    namespace 'my.org.pkkc.stg'
     defaultConfig {
         // Overridden per-flavor below (every real build variant picks stg or prd) -
         // this default is only a fallback and isn't expected to be built directly.
-        applicationId 'my.ppkc'
+        applicationId 'my.org.pkkc'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -118,12 +118,12 @@ android {
         // last wrote into defaultConfig.applicationId above.
         stg {
             dimension "env"
-            applicationId "my.ppkc.stg"
+            applicationId "my.org.pkkc.stg"
             resValue "string", "app_name", "PKKC (STG)"
         }
         prd {
             dimension "env"
-            applicationId "my.ppkc"
+            applicationId "my.org.pkkc"
             resValue "string", "app_name", "PKKC"
         }
     }

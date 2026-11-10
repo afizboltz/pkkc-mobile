@@ -1,4 +1,4 @@
-package my.ppkc.stg
+package my.org.pkkc.stg
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

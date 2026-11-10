@@ -18,13 +18,13 @@ PROJECT_PATH = File.join(ROOT, 'PKKCSTG.xcodeproj')
 TARGET_NAME = 'PKKCSTG'
 
 STG_SETTINGS = {
-  'PRODUCT_BUNDLE_IDENTIFIER' => 'my.ppkc.stg',
+  'PRODUCT_BUNDLE_IDENTIFIER' => 'my.org.pkkc.stg',
   'EXPO_PUBLIC_ENV' => 'stg',
   'APP_DISPLAY_NAME' => 'PKKC (STG)',
 }.freeze
 
 PRD_OVERRIDES = {
-  'PRODUCT_BUNDLE_IDENTIFIER' => 'my.ppkc',
+  'PRODUCT_BUNDLE_IDENTIFIER' => 'my.org.pkkc',
   'EXPO_PUBLIC_ENV' => 'prd',
   'APP_DISPLAY_NAME' => 'PKKC',
 }.freeze

@@ -370,7 +370,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = my.ppkc.stg;
+				PRODUCT_BUNDLE_IDENTIFIER = my.org.pkkc.stg;
 				PRODUCT_NAME = PKKCSTG;
 				SWIFT_OBJC_BRIDGING_HEADER = "PKKCSTG/PKKCSTG-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -404,7 +404,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = my.ppkc.stg;
+				PRODUCT_BUNDLE_IDENTIFIER = my.org.pkkc.stg;
 				PRODUCT_NAME = PKKCSTG;
 				SWIFT_OBJC_BRIDGING_HEADER = "PKKCSTG/PKKCSTG-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -437,7 +437,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = my.ppkc;
+				PRODUCT_BUNDLE_IDENTIFIER = my.org.pkkc;
 				PRODUCT_NAME = PKKCSTG;
 				SWIFT_OBJC_BRIDGING_HEADER = "PKKCSTG/PKKCSTG-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -541,7 +541,7 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = my.ppkc;
+				PRODUCT_BUNDLE_IDENTIFIER = my.org.pkkc;
 				PRODUCT_NAME = PKKCSTG;
 				SWIFT_OBJC_BRIDGING_HEADER = "PKKCSTG/PKKCSTG-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
